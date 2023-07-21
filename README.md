@@ -96,9 +96,9 @@ custom</td>
 </tr>
 <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
 <tr>
-<td>NewsX API</td>
-<td>Price</td>
+<td><a href="https://rapidapi.com/auth/sign-up?referral=/machaao-inc-machaao-inc-default/api/newsx">NewsX API</a></td>
 <td></td>
+<td>---</td>
 <td>No Free API Key</td>
 <td>5,000  Sources</td>
 </tr>
