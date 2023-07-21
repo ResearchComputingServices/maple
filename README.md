@@ -133,7 +133,7 @@ custom</td>
 $99/mnth,
 $199/mnth,
 $599/mnth</td>
-<td><a href="https://newsdata.io/documentation" Documentation </a></td>
+<td><a href="https://newsdata.io/documentation"> Documentation </a></td>
 <td>[Sample Data](jsonSample/NewsDataIO_JSON.md)</td>
 <td>100+ 
 [Source List](sources/NewsDataIO.md)
@@ -146,7 +146,7 @@ $599/mnth</td>
 $25/mnth,
 $100/mnth,
 $250/mnth</td>
-<td><a href="https://mediastack.com/documentation" Documentation </a></td>
+<td><a href="https://mediastack.com/documentation"> Documentation </a></td>
 <td>[Sample Data](jsonSample/)</td>
 <td>10s
 [Source List](sources/MediaStack.md)
