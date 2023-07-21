@@ -41,104 +41,121 @@ The following files are samples of retrieved data from Youtube:
 
 ## APIs - Investigation of third party tools to query news
 
+[Sample Data](./jsonSamples/NewsAPI_JSON.md)
+
 <table>
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
 <tr>
 <th>Name</th>
 <th>Price</th>
 <th>Request</th>
 <th>Example output</th>
+<th>Sources</th>
 </tr>
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
 <tr>
 <td> <a href="https://newscatcherapi.com/"> NewsCatcher API </a></td>
 <td> Free 30 days trial, then min $399/mo</td>
-<td>
-
-[search documentation](https://docs.newscatcherapi.com/api-docs/endpoints-1/search-news)
+<td> <a href="https://docs.newscatcherapi.com/api-docs/endpoints-1/search-news"> Documentaion </a></td>
+<td>[Sample Data](jsonSample/NewsCatcherAPI_JSON)</td>
+<td>1000+
+[Source List](sources/NewsCatcherAPI.md)</td>
+</tr>
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+<tr>
+<td>NewsAPI</td>
+<td>Free,
+$449/mnth,
+$1749/mnth
 </td>
 <td>
-
-```json
-{
-    "status": "ok",
-    "total_hits": 10000,
-    "page": 1,
-    "total_pages": 5000,
-    "page_size": 2,
-    "articles": [
-        {
-            "title": "ARK reduziert Anteile: Cathie Wood wirft Tesla-Aktien aus dem Depot",
-            "author": null,
-            "published_date": "2021-08-04 01:15:00",
-            "published_date_precision": "full",
-            "link": "https://www.finanzen.net/nachricht/aktien/beteiligung-reduziert-ark-reduziert-anteile-cathie-wood-wirft-tesla-aktien-aus-dem-depot-10402608",
-            "clean_url": "finanzen.net",
-            "excerpt": "• ARK Invest verkauft Tesla-Anteile im Wert von 43,7 Millionen US-Dollar • Tesla-Aktie bleibt Top-Holding in drei ETFs • Cathie Wood sieht Tesla-Aktie falsch ...",
-            "summary": "• ARK Invest verkauft Tesla-Anteile im Wert von 43,7 Millionen US-Dollar• Tesla-Aktie bleibt Top-Holding in drei ETFs• Cathie Wood sieht Tesla-Aktie falsch bewertet Die starke Entwicklung der Tesla-Aktie im Jahr 2020 war einer der Hauptwachstumstreiber in den ETFs der Investmentfirma ARK Invest. Im April hatte das Unternehmen bei einem Aktienpreis von rund 719 US-Dollar dann zuletzt einige Tesla-Aktien aus dem Depot geworfen, jetzt war es erneut soweit. Tesla-Aktien verkauft: 43,7 Millionen US-Dollar eingenommen ARK veräußerte 63.643 Tesla-Aktien und hat bei dem Verkauf 43,7 Millionen US-Dollar eingenommen, das geht aus dem Trading-Update des Unternehmens hervor. Tesla ist die Top-Holding im Flaggschiff ETF ARK Innovation und ist ebenfalls die größte Beteiligung in zwei weiteren ARK-ETFs: Dem Ark Autonomous Technology & Robotics ETF und dem Ark Next Generation Internet ETF. Insgesamt befinden sich nun noch 4.873.916 Tesla-Aktien in den ETFs von ARK Invest, der Gesamtwert des Investments belief sich zuletzt auf rund 3,3 Milliarden US-Dollar. Tesla von falschen Analysten falsch bewertet Dass der Teil-Verkauf von Tesla-Aktien den Langzeit-Bullen Wood an dem Elektroautobauer zweifeln lässt, ist allerdings nicht anzunehmen. Noch vor Veröffentlichung der Quartalsbilanz von Tesla hatte Wood in einem Interview ihr Basis-Kursziel von 3.000 US-Dollar für die Tesla-Aktie bestätigt. Gegenüber \"Real Vision\" nahm die Investorin dabei auch Tesla-Analysten ins Visier, die ihrer Meinung nach mit dafür verantwortlich sind, dass Tesla am Markt falsch bewertet wird: \"Wir glauben, dass der Grund für eine so große Ineffizienz bei Teslas Bewertung der kurzfristige Zeithorizont der Analysten ist und die Tatsache, dass die falschen Analysten folgen\". Sie betonte, dass Tesla mehrheitlich von Auto-Analysten bewertet werde, dabei sei der Konzern von Elon Musk ein \"facettenreiches Technologieunternehmen\". Bei ARK hab man eine andere Herangehensweise, um die Aktie von Tesla korrekt bewerten zu können: \"Tesla ist ein Technologieunternehmen, aber nicht nur ein Technologieunternehmen\", sagte sie und nannte in dem Zusammenhang auch Energiespeicher, Robotik, künstliche Intelligenz und Software-as-a-Service. \"Wir haben also drei Analysten, die das Tesla-Modell zusammenbauen\", erklärte sie. ARK investiert in Innovation Die Investmentgesellschaft der Starinvestorin hat sich vorrangig auf die Marktsegmente Digitalisierung und Technologie konzentriert und das Portfolio ihrer ETFs konsequent darauf ausgerichtet. Der Fokus hat dafür gesorgt, dass ARK in den vergangenen Jahren eine starke Rendite erwirtschaften konnte und im vergangenen Jahr auch Investorenlegende Warren Buffett und seiner Holding Berkshire Hathaway den Rang abgelaufen hatte.",
-            "rights": "klamm.de",
-            "rank": 7420,
-            "topic": "news",
-            "country": "unknown",
-            "language": "de",
-            "authors": [],
-            "media": "https://static.klamm.de/news/news-img-k.jpg",
-            "is_opinion": false,
-            "twitter_account": null,
-            "_score": 13.178295,
-            "_id": "e3c5e3a88c985a015b6051812198670d"
-        },
-        {
-            "title": "How much does a Tesla weigh? Comparing each model",
-            "author": "Scooter Doll",
-            "published_date": "2021-08-02 08:23:00",
-            "published_date_precision": "full",
-            "link": "https://electrek.co/2021/08/02/how-much-does-a-tesla-weigh-comparing-each-model",
-            "clean_url": "electrek.co",
-            "excerpt": "When learning more about Tesla and its growing fleet of EVs, consumers new to the market have a lot of the same questions. Inquiries such as How much does a Tesla cost? How long does it take to charge a Tesla? How much does it cost to charge a Tesla? Believe it or not, one of the most frequent questions we receive in addition to those above is, How much does a Tesla weigh? \nWhile this question is more easily answered than others, there are a few factors that play a role in the weight of each Tesla model. Here's everything you need to know broken down by model.\n more…\nThe post How much does a Tesla weigh? Comparing each model appeared first on Electrek.",
-            "summary": "When learning more about Tesla and its growing fleet of EVs, consumers new to the market have a lot of the same questions. Inquiries such as How much does a Tesla cost? How long does it take to charge a Tesla? How much does it cost to charge a Tesla? Believe it or not, one of the most frequent questions we receive in addition to those above is, How much does a Tesla weigh?\n\nWhile this question is more easily answered than others, there are a few factors that play a role in the weight of each Tesla model. Here's everything you need to know broken down by model.\n\nHow much does each Tesla weigh?\n\nUnfortunately, your Tesla does not get an annual physical where a doctor can check in on your EV's weight, and there aren't too many vehicle-sized scales easily accessible to drivers.\n\nLuckily, Tesla has provided the weights of most of its vehicles, but they're still are varying factors.\n\nAside from different model types, some Teslas can vary in weight based on their trim or powertrain. Electric motors aren't as heavy ICE engine blocks, but they do carry some weight around.\n\nThat being said, more performance means more electric motors, and more motors mean additional weight.\n\nThe size and cargo space of the Tesla itself is also a pretty obvious factor, as a Model X will certainly weigh more than a Model 3 — and pretty much any other Tesla at this point.\n\nBelow is each Tesla's weight according to the American automaker, sorted by chronological debut.\n\nTesla's original Roadster EV\n\nTesla Roadster\n\nTesla's flagship EV remains its lightest model to date. The original Tesla Roadster sits as a limited-run EV and is now a collector's item for some, so its weight has not changed in the decade it's been around.\n\nThe first-generation Roadster weighs in at 2,723 lbs.\n\nModel S\n\nThe second oldest Tesla model on our list and the longest currently in production is the Model S sedan. After seeing a refresh earlier in 2021 that will eventually bring the tri-motor Plaid powertrain to drivers, the Model S can come with some weight.\n\nThe dual-motor Long Range trim, which has now been delayed to 2022, weighs 4,561 lbs.\n\nThe tri-motor Plaid Model S will weigh in at 4,766 lbs. when it (hopefully) delivers this fall.\n\nModel X\n\nThe largest current Tesla is unsurprisingly also the heaviest to date (we're still waiting on you, Cybertruck).\n\nCurrently available in two different trims, both the Long Range and new Plaid Model X weigh more than any of their Tesla siblings.\n\nThe Model X Long Range weighs 5,185 lbs., while the Plaid Model X and its three motors will weigh 5,390 lbs. Both trims are currently scheduled to arrive in the first quarter of 2022 alongside the Long Range Model S.\n\nModel 3\n\nThe cheapest Tesla available is also one of the very lightest, no matter the powertrain you choose. The Tesla Model 3 is currently available in three trims:\n\nThe single motor Model 3 Standard Range Plus is the second-lightest Tesla ever at 3,582 lbs.\n\nThe other two dual-motor Model 3 trims, Long Range and Performance, both weigh in at 4,065 lbs.\n\nModel Y\n\nThe newest Tesla to arrive currently sits in the middle of the pack on weight, which sits on brand with its pricing and performance as well.\n\nThe Tesla Model Y is currently available in either a Long Range or Performance dual-motor trim, and each weighs 4,416 lbs.\n\nWhat is the heaviest Tesla?\n\nIf you've skimmed through to this point, you must just be looking for weights and an answer to the question above without all the jibber-jabber. We respect that, so here you go.\n\nHere are all of Tesla's current models sorted heaviest to lightest:\n\n5,390 lbs – Model X Plaid\n\n5,185 lbs – Model X Long Range\n\n4,766 lbs – Model S Plaid\n\n4,561 lbs – Model S Long Range\n\n4,416 lbs – Model Y Long Range/Performance\n\n4,065 lbs – Model 3 Long Range/Performance\n\n3,582 lbs – Model 3 Standard Range Plus\n\n2,723 lbs Gen. 1 Tesla Roadster\n\nHow much does Tesla Cybertruck weigh?\n\nUnfortunately, we do not have that granular of specs on the upcoming Tesla Cybertruck yet, although we have asked Tesla several times.\n\nBased on the increased size and payload capacity (at least 3,500 lbs) compared to the current largest Tesla in the Model X, we anticipate the weight of the three upcoming powertrains on the Cybertruck to be between 5,000 and 6,500 lbs.\n\nThat being said, towing capacities up to 14,000 lbs., like Tesla is advertising for the tri-motor Cybertruck, could very well require more weight beyond 6,500 lbs.\n\nCheck back in with our Cybertruck guide periodically for the latest specs from Tesla.\n\nHow much does the 2nd generation Tesla Roadster weigh?\n\nMuch like the Cybertruck, Tesla has not yet revealed what the second-generation Roadster will tip the scales at when it debuts in 2022.\n\nBased on its size and touted performance, complete with new motors, we'd expect the new Roadster to land somewhere near the upcoming Model S trims, perhaps between 4,400 and 4,700 lbs.\n\nWe will know for certain when Tesla shares more details of the Gen. 2 Roadster… like whether it can actually hover or not.\n\nFTC: We use income earning auto affiliate links. More.\n\nSubscribe to Electrek on YouTube for exclusive videos and subscribe to the podcast.",
-            "rights": "electrek.co",
-            "rank": 3297,
-            "topic": "news",
-            "country": "US",
-            "language": "en",
-            "authors": [
-                "Scooter Doll"
-            ],
-            "media": "https://i1.wp.com/electrek.co/wp-content/uploads/sites/3/2021/08/Tesla-on-a-scale.jpg?resize=1200%2C628&quality=82&strip=all&ssl=1",
-            "is_opinion": false,
-            "twitter_account": "@electrekco",
-            "_score": 13.09692,
-            "_id": "b9a2f7cabf9255d7e9ec19c6dc65018d"
-        }
-    ],
-    "user_input": {
-        "q": "Tesla",
-        "search_in": [
-            "title",
-            "summary"
-        ],
-        "lang": null,
-        "not_lang": null,
-        "countries": null,
-        "not_countries": null,
-        "from": "2021-08-02 00:00:00",
-        "to": null,
-        "ranked_only": "True",
-        "from_rank": null,
-        "to_rank": null,
-        "sort_by": "relevancy",
-        "page": 1,
-        "size": 2,
-        "sources": null,
-        "not_sources": null,
-        "topic": null,
-        "published_date_precision": null
-    }
-}
-```
-
-<td>
+<a href="https://newsapi.org/docs"> Documentation </a></td>
+<td>[Sample Data](./jsonSamples/NewsAPI_JSON.md)</td>
+<td>Sources</td>
 </tr>
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+<tr>
+<td>GNews</td>
+<td>Free, 
+$49/mnth, 
+$99/mnth</td>
+<td> <a href="https://gnews.io/docs/v4#introduction"> Documentation</a></td>
+<td>[Sample Data](./jsonSamples/GNewsAPI_JSON.md)</td>
+<td>---</td>
+</tr>
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+<tr>
+<td>NewsomaticAPI</td>
+<td>49 cents / article, 
+custom</td>
+<td>[search documentation]()</td></td>
+<td>No Free API Key</td>
+<td>~20
+<a href="https://www.newsomaticapi.com/sources/"> NewsomaticAPI </a>
+</td>
+</tr>
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+<tr>
+<td>NewsX API</td>
+<td>Price</td>
+<td></td>
+<td>No Free API Key</td>
+<td>5,000  Sources</td>
+</tr>
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+<tr>
+<td>News Article Data Extract and Summarization API</td>
+<td>---</td>
+<td>---</td>
+<td>---</td>
+<td>---</td>
+</tr>
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+<tr>
+<td>News Sentiment API</td>
+<td>---</td>
+<td>---</td>
+<td>---</td>
+<td>---</td>
+</tr>
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+<tr>
+<td>MrNewsAPI</td>
+<td>---</td>
+<td>---</td>
+<td>---</td>
+<td>---</td>
+</tr>
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+<tr>
+<td>NewsData.io</td>
+<td>Free,
+$99/mnth,
+$199/mnth,
+$599/mnth</td>
+<td>[search documentation](https://newsdata.io/documentation)</td>
+<td>[Sample Data](jsonSample/NewsDataIO_JSON.md)</td>
+<td>100+ 
+[Source List](sources/NewsDataIO.md)
+</td>
+</tr>
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+<tr>
+<td>MediaStack</td>
+<td>Free,
+$25/mnth,
+$100/mnth,
+$250/mnth</td>
+<td>[search documentation](https://mediastack.com/documentation)</td></td>
+<td>[Sample Data](jsonSample/)</td>
+<td>10s
+[Source List](sources/MediaStack.md)
+</td>
+</tr>
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+
 </table>
+
 
 
 
