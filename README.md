@@ -88,10 +88,10 @@ $99/mnth</td>
 <td>NewsomaticAPI</td>
 <td>49 cents / article, 
 custom</td>
-<td>[search documentation]()</td></td>
+<td><a href="https://www.newsomaticapi.com/sources/"> Documentation</a></td>
 <td>No Free API Key</td>
 <td>~20
-<a href="https://www.newsomaticapi.com/sources/"> NewsomaticAPI </a>
+<a href="https://www.newsomaticapi.com/sources/"> Source List </a>
 </td>
 </tr>
 <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
@@ -133,7 +133,7 @@ custom</td>
 $99/mnth,
 $199/mnth,
 $599/mnth</td>
-<td><a href="https://newsdata.io/documentation"> Documentation </a></td>
+<td><a href="https://newsdata.io/documentation" Documentation </a></td>
 <td>[Sample Data](jsonSample/NewsDataIO_JSON.md)</td>
 <td>100+ 
 [Source List](sources/NewsDataIO.md)
