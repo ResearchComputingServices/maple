@@ -41,7 +41,7 @@ The following files are samples of retrieved data from Youtube:
 
 ## APIs - Investigation of third party tools to query news
 
-[Sample Data](./jsonSamples/NewsAPI_JSON.md)
+There are a wide varity of 3rd party API for collecting news artilces from online sources. Listed below are the ones investigated so far. The different payment plans provide access to additional API end points and rate limits. There is also a wide range in the number of news sources search by each API. The 'Sources' column summarizes the number of **Canadian** news sources searched.
 
 <table>
 <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
@@ -57,40 +57,51 @@ The following files are samples of retrieved data from Youtube:
 <td> <a href="https://newscatcherapi.com/"> NewsCatcher API </a></td>
 <td> Free 30 days trial, then min $399/mo</td>
 <td> <a href="https://docs.newscatcherapi.com/api-docs/endpoints-1/search-news"> Documentaion </a></td>
-<td>[Sample Data](jsonSample/NewsCatcherAPI_JSON)</td>
+<td>
+
+[Sample Data](/jsonSamples/NewsCatcherAPI_JSON.md)
+</td>
 <td>1000+
+
 [Source List](sources/NewsCatcherAPI.md)</td>
 </tr>
 <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
 <tr>
-<td>NewsAPI</td>
+<td> <a href="https://newsapi.org/"> NewsAPI </a> </td>
 <td>Free,
 $449/mnth,
 $1749/mnth
 </td>
 <td>
 <a href="https://newsapi.org/docs"> Documentation </a></td>
-<td>[Sample Data](./jsonSamples/NewsAPI_JSON.md)</td>
-<td>Sources</td>
+<td>
+
+[Sample Data](./jsonSamples/NewsAPI_JSON.md)</td>
+<td>5 
+
+[Source List](sources/NewsAPI.md)</td>
 </tr>
 <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
 <tr>
-<td>GNews</td>
+<td> <a href="https://gnews.io/"> GNews </a> </td>
 <td>Free, 
 $49/mnth, 
 $99/mnth</td>
 <td> <a href="https://gnews.io/docs/v4#introduction"> Documentation</a></td>
-<td>[Sample Data](./jsonSamples/GNewsAPI_JSON.md)</td>
+<td>
+
+[Sample Data](./jsonSamples/GNewsAPI_JSON.md)</td>
 <td>---</td>
 </tr>
 <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
 <tr>
-<td>NewsomaticAPI</td>
+<td> <a href="https://www.newsomaticapi.com/"> NewsomaticAPI </a> </td>
 <td>49 cents / article, 
 custom</td>
 <td><a href="https://www.newsomaticapi.com/sources/"> Documentation</a></td>
 <td>No Free API Key</td>
 <td>~20
+
 <a href="https://www.newsomaticapi.com/sources/"> Source List </a>
 </td>
 </tr>
@@ -128,34 +139,38 @@ custom</td>
 </tr>
 <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
 <tr>
-<td>NewsData.io</td>
+<td> <a href="https://newsdata.io"> NewsData.io </a> </td>
 <td>Free,
 $99/mnth,
 $199/mnth,
 $599/mnth</td>
 <td><a href="https://newsdata.io/documentation"> Documentation </a></td>
-<td>[Sample Data](jsonSample/NewsDataIO_JSON.md)</td>
-<td>100+ 
+<td>
+
+[Sample Data](jsonSample/NewsDataIO_JSON.md)</td>
+<td>100+
+
 [Source List](sources/NewsDataIO.md)
 </td>
 </tr>
 <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
 <tr>
-<td>MediaStack</td>
+<td> <a href="https://mediastack.com/"> MediaStack </a></td>
 <td>Free,
 $25/mnth,
 $100/mnth,
 $250/mnth</td>
 <td><a href="https://mediastack.com/documentation"> Documentation </a></td>
-<td>[Sample Data](jsonSample/)</td>
+<td>
+
+[Sample Data](jsonSample/MediaStack_JSON.md)</td>
 <td>10s
-[Source List](sources/MediaStack.md)
+
+[Source List](/sources/MediaStack.md)
 </td>
 </tr>
 <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
-
 </table>
-
 
 
 
