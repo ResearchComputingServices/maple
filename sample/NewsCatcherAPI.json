@@ -1,4 +1,4 @@
-```json
+
 {
     "status": "ok",
     "total_hits": 10000,
@@ -75,4 +75,3 @@
         "published_date_precision": null
     }
 }
-```
