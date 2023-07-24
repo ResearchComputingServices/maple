@@ -59,7 +59,7 @@ There are a wide varity of 3rd party API for collecting news artilces from onlin
 <td> <a href="https://docs.newscatcherapi.com/api-docs/endpoints-1/search-news"> Documentaion </a></td>
 <td>
 
-[Sample Data](/jsonSamples/NewsCatcherAPI_JSON.md)
+[Sample Data](/sample/NewsCatcherAPI.json)
 </td>
 <td>1000+
 
@@ -76,7 +76,7 @@ $1749/mnth
 <a href="https://newsapi.org/docs"> Documentation </a></td>
 <td>
 
-[Sample Data](./jsonSamples/NewsAPI_JSON.md)</td>
+[Sample Data](/sample/NewsAPI.json)</td>
 <td>5 
 
 [Source List](sources/NewsAPI.md)</td>
@@ -90,7 +90,7 @@ $99/mnth</td>
 <td> <a href="https://gnews.io/docs/v4#introduction"> Documentation</a></td>
 <td>
 
-[Sample Data](./jsonSamples/GNewsAPI_JSON.md)</td>
+[Sample Data](/sample/GNewsAPI.json)</td>
 <td>---</td>
 </tr>
 <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
@@ -147,7 +147,7 @@ $599/mnth</td>
 <td><a href="https://newsdata.io/documentation"> Documentation </a></td>
 <td>
 
-[Sample Data](jsonSample/NewsDataIO_JSON.md)</td>
+[Sample Data](/sample/NewsDataIO.json)</td>
 <td>100+
 
 [Source List](sources/NewsDataIO.md)
@@ -163,7 +163,7 @@ $250/mnth</td>
 <td><a href="https://mediastack.com/documentation"> Documentation </a></td>
 <td>
 
-[Sample Data](jsonSample/MediaStack_JSON.md)</td>
+[Sample Data](/sample/MediaStack.json)</td>
 <td>10s
 
 [Source List](/sources/MediaStack.md)
