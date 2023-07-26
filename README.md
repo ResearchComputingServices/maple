@@ -60,7 +60,7 @@ There are a wide varity of 3rd party API for collecting news artilces from onlin
 <tr>
 <td> <a href="https://newscatcherapi.com/"> NewsCatcher API </a></td>
 <td> Free 30 days trial, then min $399/mo</td>
-<td> <a href="https://docs.newscatcherapi.com/api-docs/endpoints-1/search-news"> Documentaion </a></td>
+<td> <a href="https://docs.newscatcherapi.com/api-docs/endpoints-1/search-news"> Documentation </a></td>
 <td>
 
 [Sample Data](/sample/NewsCatcherAPI.json)
