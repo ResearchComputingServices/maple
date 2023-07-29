@@ -1,0 +1,382 @@
+from abc import ABC, abstractmethod, abstractproperty
+from collections import OrderedDict
+import json
+from jsonschema import validate
+from typing import Any
+import logging
+import validators
+
+logger = logging.getLogger("__maple__")
+
+
+def _default_property(
+    property_name, property_type, default_value, secondary_type=None, validator=None
+):
+    @property
+    def prop(self):
+        return getattr(self, f"_{property_name}", default_value)
+
+    @prop.setter
+    def prop(self, value):
+        if not isinstance(value, property_type):
+            raise TypeError(
+                f"{property_name} should be a {property_type} but {type(value)} was provided."
+            )
+        if secondary_type is not None and isinstance(
+            getattr(self, property_name), list
+        ):
+            for val in value:
+                if not isinstance(val, secondary_type):
+                    try:
+                        val = secondary_type.from_json(val)
+                    except Exception as e:
+                        raise e
+                        # raise TypeError(
+                        #     f"Invalid secondary type {type(val)}. Should be {type(secondary_type)}"
+                        # )
+                if validator is not None:
+                    if not validator(val):
+                        raise ValueError(f"'{value}' did not pass validator.")
+        else:
+            if validator is not None:
+                if not validator(value):
+                    raise ValueError(f"'value' did not pass validator.")
+        setattr(self, f"_{property_name}", value)
+
+    return prop
+
+
+class Base(ABC):
+    def __init__(self) -> None:
+        super().__init__()
+        self._validate_default_keys()
+
+    def _validate_default_keys(self):
+        _default = self.default_keys()
+        if not isinstance(_default, list):
+            raise TypeError("'default_keys' method should return a 'list'.")
+
+    @classmethod
+    def validate(cls, value):
+        if isinstance(value, cls):
+            return True
+        else:
+            return validators.ValidationFailure(func=cls.__name__, args={})
+
+    @property
+    @abstractmethod
+    def default_keys(self):
+        raise NotImplementedError()
+
+    def _to_dict_endpoint(self):
+        out = dict()
+
+        for key in self.default_keys():
+            out[key] = getattr(self, key)
+
+        invalid_keys = list(self.default_keys()) + [
+            f"_{key}" for key in self.default_keys()
+        ]
+
+        out["metadata"] = dict()
+        for key in self.__dict__.keys():
+            if key not in invalid_keys:
+                out["metadata"][key] = getattr(self, key)
+        return out
+
+
+class Author(Base):
+    _default_keys = ["name", "url", "email", "about"]
+
+    def __init__(
+        self,
+        *,
+        name: str = None,
+        url: str = None,
+        email: str = None,
+        about: str = None,
+        **kwargs,
+    ):
+        super().__init__()
+        loc = locals()
+
+        for key in self._default_keys:
+            if key in loc.keys():
+                if loc[key] is not None:
+                    setattr(self, key, loc[key])
+
+        for key in kwargs.keys():
+            if key not in self._default_keys:
+                setattr(self, key, kwargs[key])
+
+    def default_keys(self):
+        return self._default_keys
+
+    # def default_fields(self):
+    #     return dict(
+    #         name = dict(type=str,default=)
+    #     )
+    @property
+    def name(self):
+        return getattr(self, "_name", "")
+
+    @name.setter
+    def name(self, value):
+        if not isinstance(value, str):
+            raise TypeError(f"name should be a string, not a {type(value)}")
+        setattr(self, "_name", value)
+
+    @property
+    def url(self):
+        return getattr(self, "_url", "")
+
+    @url.setter
+    def url(self, value):
+        if not validators.url(value):
+            raise ValueError(f"'{value}'is not a valid url.")
+        setattr(self, "_url", value)
+
+    @property
+    def email(self):
+        return getattr(self, "_email", "")
+
+    @email.setter
+    def email(self, value):
+        if not validators.email(value):
+            raise ValueError("Invalid email address.")
+        setattr(self, "_email", value)
+
+    @property
+    def about(self):
+        return getattr(self, "_about", "")
+
+    @about.setter
+    def about(self, value):
+        if not isinstance(value, str):
+            raise TypeError("'about; should be a string.")
+        setattr(self, "_about", value)
+
+    def to_dict(self):
+        return self._to_dict_endpoint()
+
+    @staticmethod
+    def from_json(data):
+        if isinstance(data, str):
+            try:
+                data = json.loads(data)
+            except Exception as e:
+                logger.debug(f"Author.from_json: {e}")
+                raise TypeError("data was not a valid json formatted string")
+        try:
+            author = Author(**data)
+            return author
+        except Exception as e:
+            logger.debug(f"Author.from_json: {e}")
+            raise ValueError(f"Could not create author from json. {e}")
+
+
+class Comments(Base):
+    _default_keys = ["title", "author"]
+    #TODO content, likes, shares, reply_content, comment_id
+
+    def __init__(self) -> None:
+        pass
+
+    def default_keys(self):
+        return self._default_keys
+
+    @property
+    def title(self):
+        return getattr(self, "_title", "")
+
+    @title.setter
+    def title(self, value):
+        if not isinstance(value, str):
+            raise TypeError(
+                f"title should be a string, but '{type(value)}' was provided."
+            )
+        setattr(self, "_title", value)
+
+    @property
+    def author(self):
+        return getattr(self, "_author", [])
+
+    @author.setter
+    def author(self, value):
+        if isinstance(value, str):
+            value = [value]
+        elif isinstance(value, list):
+            for val in value:
+                # TODO
+                pass
+
+    @staticmethod
+    def from_json(data):
+        if isinstance(data, str):
+            try:
+                data = json.loads(data)
+            except:
+                raise ValueError(f"Invalid json format. {data}")
+        comment = Comments()
+        for key in data.keys():
+            try:
+                setattr(comment, key, data[key])
+            except:
+                logger.debug(f"Comments:from_json: Invalid data: '{key}':{data[key]}")
+        return comment
+
+    def to_dict(self):
+        return self._to_dict_endpoint()
+
+
+_article_properties = [
+    dict(name="url", type=str, default="", validator=validators.url),
+    dict(name="title", type=str, default=""),
+    dict(name="summary", type=str, default=""),
+    dict(name="content", type=str, default=""),
+    dict(
+        name="author",
+        type=list,
+        default={},
+        secondary_type=Author,
+        validator=Author.validate,
+    ),
+    dict(name="has_video", type=bool, default=False),
+    dict(
+        name="video_url",
+        type=list,
+        default=[],
+        secondary_type=str,
+        validator=validators.url,
+    ),
+    dict(name="date_published", type=str, default=""),
+    dict(name="date_modified", type=str, default=""),
+    dict(name="has_comments", type=bool, default=False),
+    dict(name="number_of_comments", type=int, default=0),
+    dict(name="has_likes", type=bool, default=False),
+    dict(name="number_of_likes", type=int, default=0),
+    dict(name="has_shares", type=bool, default=False),
+    dict(name="number_of_shares", type=int, default=0),
+    dict(name="comments", type=list, default=[], secondary_type=Comments),
+    dict(name="topic", type=list, secondary_type=str, default=[]),
+    dict(name="language", type=str, default=""),
+    dict(name="geographic_location", type=str, default=""),
+    dict(name="location_name", type=list, default=""),
+    dict(name="metadata", type=dict, default={}),
+]
+
+class Article(Base):
+    _properties = _article_properties.copy()
+
+    _suppress_errors = False
+
+    def __init__(self):
+        setattr(self, "_author", [])
+        for prop in self._properties:
+            setattr(
+                Article,
+                prop["name"],
+                _default_property(
+                    prop["name"],
+                    prop["type"],
+                    prop["default"],
+                    secondary_type=None
+                    if "secondary_type" not in prop.keys()
+                    else prop["secondary_type"],
+                    validator=None
+                    if "validator" not in prop.keys()
+                    else prop["validator"],
+                ),
+            )
+
+    def default_keys(self):
+        return self._default_keys
+
+    def add_author(self, author: Author):
+        if not isinstance(author, Author):
+            raise TypeError(
+                f"'author' should be of type {type(Author)}, not type {type(author)}"
+            )
+        self._author.append(author)
+
+    def to_dict(self):
+        # out = dict(
+        #     title = self.title,
+        #     summary = self.summary,
+        #     content = self.content,
+        #     url = self.url,
+        #     author = [a.to_dict() for a in self.author],
+        # )
+        out = dict()
+        for prop in self._properties:
+            attr = getattr(self, prop["name"])
+            if isinstance(attr, list):
+                outlist = []
+                for val in attr:
+                    try:
+                        outlist.append(val.to_dict())
+                    except:
+                        outlist.append(val)
+                out[prop["name"]] = outlist
+            else:
+                try:
+                    out[prop["name"]] = attr.to_dict()
+                except:
+                    out[prop["name"]] = attr
+
+        for key in self.__dict__.keys():
+            if key[1:] not in out.keys():
+                out["metadata"][key] = getattr(self, key)
+
+        return out
+
+    @staticmethod
+    def from_json(data, *, mapping = None):
+        if isinstance(data, str):
+            try:
+                data = json.loads(data)
+            except:
+                raise ValueError(f"Invalid json format. {data}")
+
+        # mapping keywords fom a different structure
+        if mapping is not None:
+            converted = dict()
+            
+            for key in data.keys():
+                if key in mapping.keys():
+                    converted[mapping[key]] = data.pop(key)
+            
+            if any(key in data.keys() for key in converted.keys()):
+                raise ValueError('Mapped key already exist in data')
+            
+            data.update(converted)
+        
+        article = Article()
+
+        properties = dict()
+        for property in article._properties:
+            name = property.copy().pop("name")
+            properties[name] = property
+
+        for key in data.keys():
+            if key in properties.keys():
+                if properties[key]["type"] is list:
+                    outlist = []
+                    for item in data[key]:
+                        try:
+                            outlist.append(
+                                properties[key]["secondary_type"].from_json(item)
+                            )
+                        except:
+                            outlist.append(item)
+                    setattr(article, key, outlist)
+                else:
+                    try:
+                        setattr(article, key, properties["type"].from_json(data[key]))
+                    except:
+                        setattr(article, key, data[key])
+            elif key == "metadata":
+                pass
+            else:
+                setattr(article, key, data[key])
+        return article
