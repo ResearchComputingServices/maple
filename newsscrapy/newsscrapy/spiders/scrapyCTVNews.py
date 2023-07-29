@@ -1,7 +1,7 @@
 import scrapy
 import json
 import logging
-from .maple import Article, Author
+from maple import Article, Author
 import validators
 
 # logging.getLogger('scrapy').propagate = False
