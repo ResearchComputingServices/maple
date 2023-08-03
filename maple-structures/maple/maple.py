@@ -1,8 +1,9 @@
-from abc import ABC, abstractmethod, abstractproperty
-from collections import OrderedDict
+'''
+'''
+
+from abc import ABC, abstractmethod
 import json
-from jsonschema import validate
-from typing import Any
+from json.decoder import JSONDecodeError
 import logging
 import validators
 
@@ -29,8 +30,8 @@ def _default_property(
                 if not isinstance(val, secondary_type):
                     try:
                         val = secondary_type.from_json(val)
-                    except Exception as e:
-                        raise e
+                    except Exception as exception:
+                        raise exception
                         # raise TypeError(
                         #     f"Invalid secondary type {type(val)}. Should be {type(secondary_type)}"
                         # )
@@ -47,17 +48,20 @@ def _default_property(
 
 
 class Base(ABC):
+    '''Base class for Maple objects.'''
     def __init__(self) -> None:
         super().__init__()
         self._validate_default_keys()
 
     def _validate_default_keys(self):
+        '''Validate default keys'''
         _default = self.default_keys()
         if not isinstance(_default, list):
             raise TypeError("'default_keys' method should return a 'list'.")
 
     @classmethod
     def validate(cls, value):
+        '''Validates if value is of class type otherwise return a ValidationFailure.'''
         if isinstance(value, cls):
             return True
         else:
@@ -69,7 +73,7 @@ class Base(ABC):
         raise NotImplementedError()
 
     def _to_dict_endpoint(self):
-        out = dict()
+        out = {}
 
         for key in self.default_keys():
             out[key] = getattr(self, key)
@@ -86,6 +90,7 @@ class Base(ABC):
 
 
 class Author(Base):
+    ''' Holds the Author information.'''
     _default_keys = ["name", "url", "email", "about"]
 
     def __init__(
@@ -105,7 +110,7 @@ class Author(Base):
                 if loc[key] is not None:
                     setattr(self, key, loc[key])
 
-        for key in kwargs.keys():
+        for key in kwargs:
             if key not in self._default_keys:
                 setattr(self, key, kwargs[key])
 
@@ -132,8 +137,9 @@ class Author(Base):
 
     @url.setter
     def url(self, value):
-        if not validators.url(value):
-            raise ValueError(f"'{value}'is not a valid url.")
+        if value != '':
+            if not validators.url(value):
+                raise ValueError(f"'{value}'is not a valid url.")
         setattr(self, "_url", value)
 
     @property
@@ -142,8 +148,9 @@ class Author(Base):
 
     @email.setter
     def email(self, value):
-        if not validators.email(value):
-            raise ValueError("Invalid email address.")
+        if value != '':
+            if not validators.email(value):
+                raise ValueError("Invalid email address.")
         setattr(self, "_email", value)
 
     @property
@@ -164,8 +171,8 @@ class Author(Base):
         if isinstance(data, str):
             try:
                 data = json.loads(data)
-            except Exception as e:
-                logger.debug(f"Author.from_json: {e}")
+            except JSONDecodeError as exc:
+                logger.error(f"Author.from_json: {exc}")
                 raise TypeError("data was not a valid json formatted string")
         try:
             author = Author(**data)
@@ -212,10 +219,11 @@ class Comments(Base):
 
     @staticmethod
     def from_json(data):
+        '''from json'''
         if isinstance(data, str):
             try:
                 data = json.loads(data)
-            except:
+            except Json as exc:
                 raise ValueError(f"Invalid json format. {data}")
         comment = Comments()
         for key in data.keys():
@@ -353,7 +361,7 @@ class Article(Base):
         
         article = Article()
 
-        properties = dict()
+        properties = {}
         for property in article._properties:
             name = property.copy().pop("name")
             properties[name] = property

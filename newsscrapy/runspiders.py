@@ -10,17 +10,14 @@ import shutil
 settings = get_project_settings()
 
 # FEEDS = {'results.json' : {'format':'json'}}
-settings['FEED_FORMAT'] = 'json'
-settings['FEED_URI'] = 'data/%(time)s_%(name)s_results_Roger.json'
+settings["FEED_FORMAT"] = "json"
+settings["FEED_URI"] = "data/%(time)s_%(name)s_results_Roger.json"
 
 process = CrawlerProcess(settings=settings)
 process.crawl(CBCHeadlinesSpider)
 process.crawl(CTVNewsSpider)
 process.start()
 
-files  = glob.glob('data/*.json')
+files = glob.glob("data/*.json")
 for file in files:
-    shutil.move(file, 'data/to_process/' + os.path.split(file)[-1])
-
-pass
-
+    shutil.move(file, "data/to_process/" + os.path.split(file)[-1])
