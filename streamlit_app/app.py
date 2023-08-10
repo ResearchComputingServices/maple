@@ -96,9 +96,10 @@ for article in filtered_data:
 
 fig2, ax2 = plt.subplots(1,1, figsize=(8, 3.57))
 
+df = pd.DataFrame(sentiment_data).rename(columns=sentiment_labels)
 # for key in sentiment_keys:
 sns.kdeplot(
-    data = pd.DataFrame(sentiment_data).rename(mapper=sentiment_labels),
+    data = df,
     legend=True,
     ax=ax2,
 )

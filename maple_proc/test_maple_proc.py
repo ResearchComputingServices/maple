@@ -10,7 +10,6 @@ from maple_proc.process import filter_by_sentences, word_frequency, sentiment_an
 
 
 
-nltk.download('tagsets')
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
