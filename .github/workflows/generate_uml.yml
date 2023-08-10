@@ -9,7 +9,7 @@ runs-on: ubuntu-latest
 steps:
 - uses: actions/checkout@v3
 - name: Generate Diagrams
-run: java -jar plantuml.jar -v -tsvg "**.pu"
+run: plantuml -v -tsvg "**.pu"
 - name: Commit Diagrams
 run: |
 git config --local user.email "action@github.com"
