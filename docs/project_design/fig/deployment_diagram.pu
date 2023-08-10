@@ -1,0 +1,44 @@
+@startuml
+node Backend as backend <<device>>{
+
+}
+
+node Compute as compute <<device>>{
+
+}
+
+cloud "Local network"  as local_network{
+
+}
+cloud cloud as _cloud
+
+database Database as db <<device>>{
+    artifact postgres {
+        artifact Article
+        artifact User
+        artifact Proccessed
+    }
+}
+
+
+
+backend --> local_network: TCP/IP
+compute --> local_network: TCP/IP
+
+node "Flutter app" as app <<device>> {
+
+}
+
+node "Web server" as appweb <<device>>
+
+actor User as user
+
+user --> app
+app --> _cloud: TCP/IP
+local_network --> _cloud: TCP/IP
+appweb --> local_network: TCP/IP
+appweb --> _cloud: TCP/IP
+db --> local_network: TCP/IP
+
+@enduml
+
