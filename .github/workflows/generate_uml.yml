@@ -1,5 +1,5 @@
 name: Generate svg from uml
-on: [push]
+on:
   push:
     branches: [ "dev" ]
   workflow_dispatch:
