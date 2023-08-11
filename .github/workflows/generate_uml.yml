@@ -1,22 +1,27 @@
 name: Generate svg from uml
-on:
-push:
-branches:
-- dev
+on: [push]
+  push:
+    branches: [ "dev" ]
+  workflow_dispatch:
+
+
 jobs:
-build:
-runs-on: ubuntu-latest
-steps:
-- uses: actions/checkout@v3
-- name: Generate Diagrams
-run: plantuml -v -tsvg "**.pu"
-- name: Commit Diagrams
-run: |
-git config --local user.email "action@github.com"
-git config --local user.name "GitHub Action"
-git add .
-git commit -m "Update generated diagrams" || exit 0
-- name: Push Diagrams
-uses: ad-m/github-push-action@master
-with:
-github_token: ${{ github.token }}
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Generate Diagrams
+      run: java -jar plantuml.jar -v -tsvg "**.pu"
+
+    - name: Commit Diagrams
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add .
+        git commit -m "Update generated diagrams" || exit 0
+    
+    - name: Push Diagrams
+      uses: ad-m/github-push-action@dev
+      with:
+        github_token: ${{ github.token }}
