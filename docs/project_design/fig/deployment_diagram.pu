@@ -6,10 +6,12 @@ node Backend as backend <<device>>{
 node Compute as compute <<device>>{
 
 }
+node "Data fetcher" as crawler <<device>>
 
 cloud "Local network"  as local_network{
 
 }
+
 cloud cloud as _cloud
 
 database Database as db <<device>>{
@@ -17,6 +19,7 @@ database Database as db <<device>>{
         artifact Article
         artifact User
         artifact Proccessed
+        artifact Search
     }
 }
 
@@ -24,6 +27,7 @@ database Database as db <<device>>{
 
 backend --> local_network: TCP/IP
 compute --> local_network: TCP/IP
+crawler --> local_network: TCP/IP
 
 node "Flutter app" as app <<device>> {
 
@@ -31,10 +35,14 @@ node "Flutter app" as app <<device>> {
 
 node "Web server" as appweb <<device>>
 
+node "Smartphone/Computer" as smartdevice <<device>>
+
 actor User as user
 
 user --> app
+user --> smartdevice
 app --> _cloud: TCP/IP
+smartdevice-->_cloud: TCP/IP
 local_network --> _cloud: TCP/IP
 appweb --> local_network: TCP/IP
 appweb --> _cloud: TCP/IP
