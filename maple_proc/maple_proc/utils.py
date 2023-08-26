@@ -11,9 +11,18 @@ from maple import Article
 import spacy
 from geopy.geocoders import Nominatim
 nlp = spacy.load("en_core_web_sm")
-#--------------
+#-----------------------------------------------------------------
 
 
+#The packages below are needed for sentiment analysis
+from transformers import AutoTokenizer
+from transformers import AutoModelForSequenceClassification
+from scipy.special import softmax
+
+MODEL = f"cardiffnlp/twitter-roberta-base-sentiment"
+tokenizer = AutoTokenizer.from_pretrained(MODEL)
+model = AutoModelForSequenceClassification.from_pretrained(MODEL)
+#------------------------------------------------------------------
 
 
 logger = logging.getLogger("atlin_proc:utils")
@@ -138,4 +147,67 @@ def get_location(text):
     return ret_locations
 
 
+
+#==========================================================================
+#Returns the maximum score for a sentiment value and assign a label to it
+#=========================================================================
+def max_score(scores):
+    if (scores[0]>scores[1]) and (scores[0]>scores[2]):
+        label="NEGATIVE"
+        score = scores[0]
+    else:
+        if (scores[1] > scores[0]) and (scores[1] > scores[2]):
+            label = "NEUTRAL"
+            score = scores[1]
+        else:
+            if (scores[2] > scores[0]) and (scores[2] > scores[1]):
+                label = "POSITIVE"
+                score = scores[2]
+    return label, score
+
+
+
+#==========================================================================
+#This function split a text in paragraphs
+#Assuming each paragraph is separated by a new line.
+#==========================================================================
+def split_in_paragraphs(text):
+   lines = text.split('\n')
+   return lines
+
+
+#==========================================================================
+#This function gets the sentiment value of an article
+#==========================================================================
+def get_sentiment_of_article(article_text):
+    #Get the paragraphs
+    lines = split_in_paragraphs(article_text)
+
+    #Obtain sentiment value of each paragraph
+    sentiment_lines = {}
+    i=0
+    for line in lines:
+        if len(line)>0:
+            label, score = get_sentiment_of_text(line)
+            sentiment_lines[i] = {"label" : label, "score" : score}
+            i=i+1
+    return sentiment_lines
+
+
+#==========================================================================
+#This function gets the sentiment value of a text
+#==========================================================================
+def get_sentiment_of_text(text):
+    encoded_text = tokenizer(text, return_tensors='pt')
+    output = model(**encoded_text)
+    scores = output[0][0].detach().numpy()
+    scores = softmax(scores)
+    scores_dict = {
+        'roberta_neg': scores[0],
+        'roberta_neu': scores[1],
+        'roberta_pos': scores[2]
+    }
+    label, score = max_score(scores)
+
+    return label, score
 
