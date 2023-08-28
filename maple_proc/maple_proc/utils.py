@@ -179,7 +179,7 @@ def split_in_paragraphs(text):
 #==========================================================================
 #This function gets the sentiment value of an article
 #==========================================================================
-def get_sentiment_of_article(article_text):
+def bert_get_sentiment_of_article(article_text):
     #Get the paragraphs
     lines = split_in_paragraphs(article_text)
 
@@ -188,7 +188,7 @@ def get_sentiment_of_article(article_text):
     i=0
     for line in lines:
         if len(line)>0:
-            label, score = get_sentiment_of_text(line)
+            label, score = bert_get_sentiment_of_text(line)
             sentiment_lines[i] = {"label" : label, "score" : score}
             i=i+1
     return sentiment_lines
@@ -197,7 +197,7 @@ def get_sentiment_of_article(article_text):
 #==========================================================================
 #This function gets the sentiment value of a text
 #==========================================================================
-def get_sentiment_of_text(text):
+def bert_get_sentiment_of_text(text):
     encoded_text = tokenizer(text, return_tensors='pt')
     output = model(**encoded_text)
     scores = output[0][0].detach().numpy()
@@ -210,4 +210,72 @@ def get_sentiment_of_text(text):
     label, score = max_score(scores)
 
     return label, score
+
+
+#======================================================================
+import nltk
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
+nltk.download('all')
+
+#======================================================================
+def nltk_preprocess_text(text):
+
+    # Tokenize the text
+    tokens = word_tokenize(text.lower())
+
+    # Remove stop words
+    filtered_tokens = [token for token in tokens if token not in stopwords.words('english')]
+
+    # Lemmatize the tokens
+    lemmatizer = WordNetLemmatizer()
+    lemmatized_tokens = [lemmatizer.lemmatize(token) for token in filtered_tokens]
+
+    # Join the tokens back into a string
+    processed_text = ' '.join(lemmatized_tokens)
+    return processed_text
+
+
+#=========================================================================
+def nltk_max_score(scores):
+    if (scores['neg']>scores['neu']) and (scores['neg']>scores['pos']):
+        label="NEGATIVE"
+        score = scores['neg']
+    else:
+        if (scores['neu'] > scores['neg']) and (scores['neu'] > scores['pos']):
+            label = "NEUTRAL"
+            score = scores['neu']
+        else:
+            if (scores['pos'] > scores['neg']) and (scores['pos'] > scores['neu']):
+                label = "POSITIVE"
+                score = scores['pos']
+            else:
+                label = "UNDEFINED"
+                score = 0
+
+        if scores['compound'] >= 0.05:
+            overall = "POSITIVE"
+        else:
+            if scores["compound"]<=-0.05:
+                overall = "NEGATIVE"
+            else:
+                overall = "NEUTRAL"
+    return label, score, overall
+
+
+
+#=====================================================================================
+def nltk_sentiment_text(text):
+    analyzer = SentimentIntensityAnalyzer()
+    pre_pro_text = nltk_preprocess_text(text)
+    scores = analyzer.polarity_scores(pre_pro_text)
+    label, score, overall = nltk_max_score(scores)
+
+    return overall, scores["compound"]
+
+
+
+
 
