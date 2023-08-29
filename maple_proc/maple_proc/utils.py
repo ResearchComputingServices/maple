@@ -255,13 +255,13 @@ def nltk_max_score(scores):
                 label = "UNDEFINED"
                 score = 0
 
-        if scores['compound'] >= 0.05:
-            overall = "POSITIVE"
+    if scores['compound'] >= 0.05:
+        overall = "POSITIVE"
+    else:
+        if scores["compound"]<=-0.05:
+            overall = "NEGATIVE"
         else:
-            if scores["compound"]<=-0.05:
-                overall = "NEGATIVE"
-            else:
-                overall = "NEUTRAL"
+            overall = "NEUTRAL"
     return label, score, overall
 
 
