@@ -12,7 +12,8 @@ def get_date_str(value):
         pass
     if isinstance(value, int | float):
         try:
-            return datetime.fromtimestamp(value).strftime(outputformat)
+            return datetime.isoformat(datetime.fromtimestamp(value))
+            # return datetime.fromtimestamp(value).strftime(outputformat)
         except: 
             try:
                 return datetime.fromtimestamp(value/1000).strftime(outputformat)

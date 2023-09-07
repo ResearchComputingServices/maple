@@ -11,8 +11,8 @@ import pandas as pd
 
 sys.path.append(os.getcwd())
 from maple import Article
-from maple_proc.maple_proc.utils import load_articles
-from maple_proc.maple_proc.process import filter_by_sentences, word_frequency, sentiment_analysis
+from maple_proc.maple_processing.utils import load_articles
+from maple_proc.maple_processing.process import filter_by_sentences, word_frequency, sentiment_analysis
 
 st.set_page_config(layout="wide")
 def load_data_with_message():

@@ -4,9 +4,9 @@ import re
 from urllib.parse import urlparse, urljoin, urlsplit, urlunparse
 import validators
 from datetime import datetime
-from maple import Article, Comments, Author
+from maple_structures import Article, Comments, Author
 import logging
-from maple.utils import get_date_str
+from maple_structures.utils import get_date_str
 
 logging.basicConfig()
 logger = logging.getLogger("scapyCBC")
