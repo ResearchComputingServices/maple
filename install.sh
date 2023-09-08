@@ -6,7 +6,7 @@ VENV=".venv"
 
 source $VENV/bin/activate
 
-pip installl --upgrade pip
+pip install --upgrade pip
 
 pip install -r requirements.txt
 
@@ -19,3 +19,7 @@ cd ../maple_proc
 pip install -e .
 
 cd ../maple_interface
+
+pip install -e .
+
+cd ../
