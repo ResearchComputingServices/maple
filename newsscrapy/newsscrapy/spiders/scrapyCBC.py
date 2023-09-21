@@ -52,9 +52,9 @@ class CBCArticleExtractor:
                             parsed = urlparse(response.url)
                             url = f"{parsed.scheme}://{parsed.netloc}{url}"
                     author.url = url
-                except:
+                except Exception as exc:
                     logger.debug(
-                        f"extract_author:Could not retrieve url for author. {e}"
+                        f"extract_author:Could not retrieve url for author. {exc}"
                     )
 
             if getattr(author, "title", "") == "":
@@ -178,12 +178,13 @@ class CBCArticleExtractor:
 
 
 class CBCHeadlinesSpider(scrapy.Spider):
-    url_mapping = dict()
     name = "cbcnews"
 
     def __init__(self, name=None, **kwargs):
         super().__init__(name, **kwargs)
-
+        
+        self.url_mapping = dict()
+        
         base_url = "https://cbc.ca/news/canada"
 
         locations = [
@@ -221,6 +222,7 @@ class CBCHeadlinesSpider(scrapy.Spider):
         yield scrapy.Request(
             url="https://www.cbc.ca/rss", callback=self.get_rss_sources
         )
+        self.logger.debug(f"Start urls: {self.start_urls}")
         for link in self.start_urls:
             yield scrapy.Request(url=link, callback=self.parse)
 
@@ -229,6 +231,7 @@ class CBCHeadlinesSpider(scrapy.Spider):
             yield scrapy.Request(url=rssfeedlink, callback=self.get_rss_news)
 
     def get_rss_news(self, response):
+        '''get the links from the rss feed.'''
         for link in response.xpath("//item//link//text()").getall():
             url = link.split("?")[0]
             if url not in self.url_mapping.keys():
@@ -236,6 +239,7 @@ class CBCHeadlinesSpider(scrapy.Spider):
                 yield scrapy.Request(url=url, callback=self.parse_news_content)
 
     def parse(self, response):
+        '''parse the initial pages'''
         pattern = r"\bwindow.__INITIAL_STATE__\s*=\s*(\{.*?\})\s*;"
         json_data = response.xpath('//script[@id="initialStateDom"]').re_first(pattern)
         data = json.loads(json_data)
@@ -246,12 +250,16 @@ class CBCHeadlinesSpider(scrapy.Spider):
                     if url not in self.url_mapping.keys():
                         self.url_mapping[url] = news_content
                         yield scrapy.Request(url=url, callback=self.parse_news_content)
-                except:
+                except exception as exc:
+                    self.logger.error(exc)
                     pass
-        except:
+        except exception as exc:
+            self.logger.error(exc)
             pass
 
     def parse_news_content(self, response):
+        '''parse the actual content '''
+        self.logger.debug(f"Parsing {response.url}")
         if response.url not in self.url_mapping.keys():
             return None
         article = CBCArticleExtractor.from_response(
@@ -261,8 +269,9 @@ class CBCHeadlinesSpider(scrapy.Spider):
 
 
 def save_response_body(response):
+    '''write body of repsponse to file out.html.'''
     try:
-        with open("out.html", "w") as f:
+        with open("out.html", "w", encoding='utf-8') as f:
             f.write(str(response.body))
-    except:
-        print("Could not store output.")
+    except Exception as exc:
+        logger.error(f"Could not store output. {exc}")

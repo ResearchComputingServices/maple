@@ -299,6 +299,8 @@ class Article(Base):
             raise TypeError(
                 f"'author' should be of type {type(Author)}, not type {type(author)}"
             )
+        if getattr(self, '_author', []) is None:
+            setattr(self,'_author', [])
         setattr(self, '_author', getattr(self, '_author',[]).append(author))
         # self._author.append(author)
 

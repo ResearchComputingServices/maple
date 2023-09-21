@@ -22,4 +22,8 @@ cd ../maple_interface
 
 pip install -e .
 
+cd ../maple_config
+
+pip install -e .
+
 cd ../

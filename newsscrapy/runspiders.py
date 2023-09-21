@@ -1,5 +1,6 @@
 """Continuously run spiders"""
 import logging
+
 import scrapy
 from scrapy.crawler import CrawlerProcess, CrawlerRunner
 from scrapy.utils.project import get_project_settings
@@ -25,15 +26,16 @@ def crawl_jobs():
     """Job to start spiders."""
     settings = get_project_settings()
     settings['FEEDS'] = {'data/%(time)s_results_spider_%(name)s.json' : {'format':'json'}}
-    settings["LOG_LEVEL"] = "INFO"
+    settings["LOG_LEVEL"] = "DEBUG"
     settings['TWISTED_REACTOR']= "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
-    
+    settings['ITEM_PIPELINES'] = {"newsscrapy.pipelines.NewsscrapyPipeline": 300}
+    print(settings.__dict__['attributes']['ITEM_PIPELINES'])
     runner = CrawlerRunner(settings)
     
     
     return [
         runner.crawl(CBCHeadlinesSpider),
-        runner.crawl(CTVNewsSpider),
+        # runner.crawl(CTVNewsSpider),
     ]
 
 
@@ -49,7 +51,7 @@ def crawl():
     jobs = crawl_jobs()
     for i, job in enumerate(jobs):
         if i == 0:
-            job.addCallback(schedule_next_crawl, 120)
+            job.addCallback(schedule_next_crawl, 10)
         job.addErrback(catch_error)
 
 
@@ -59,5 +61,6 @@ def catch_error(failure):
 
 if __name__ == "__main__":
     from twisted.internet import reactor
+    logging.basicConfig(level=logging.INFO, filename=None)
     crawl()
     reactor.run()
