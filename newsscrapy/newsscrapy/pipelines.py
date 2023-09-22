@@ -32,7 +32,13 @@ class NewsscrapyPipeline:
         if 'MAPLE_BACKEND_IP' in config and 'MAPLE_BACKEND_PORT' in config:
             authority = f"http://{config['MAPLE_BACKEND_IP']}:{config['MAPLE_BACKEND_PORT']}"
         cls.logger.debug("Using authority: %s", authority)
-        return cls(authority)
+        
+        chatgptkey = None
+        if 'MAPLE_CHATGPT35TURBO_APIKEY' in config:
+            if config['MAPLE_CHATGPT35TURBO_APIKEY'] != '':
+                chatgptkey = config['MAPLE_CHATGPT35TURBO_APIKEY']
+        
+        return cls(authority, chatgptkey)
 
     def process_item(self, item, spider):
         try:
