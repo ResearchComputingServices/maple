@@ -4,7 +4,7 @@ import os
 import json
 from json.decoder import JSONDecodeError
 import logging
-from maple import Article
+from maple_structures import Article
 
 
 #The packages and line below are needed for the location function

@@ -5,6 +5,8 @@
 _news*
 *__pycache_*
 
+
+.env.secret
 maple-structures/pyproject.toml
 maple-structures/build*
 maple-structures/dist*
@@ -14,4 +16,6 @@ tests*
 
 
 politics*
-backend*
+backend/
+results*.json
+log_*

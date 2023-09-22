@@ -6,9 +6,23 @@ VENV=".venv"
 
 source $VENV/bin/activate
 
+pip install --upgrade pip
+
 pip install -r requirements.txt
 
-cd maple-structures
+cd maple_structures
+
+pip install -e .
+
+cd ../maple_proc
+
+pip install -e .
+
+cd ../maple_interface
+
+pip install -e .
+
+cd ../maple_config
 
 pip install -e .
 

@@ -8,5 +8,6 @@ setup(
     url="https://github.com/ResearchComputingServices/maple",
     author="Roger Selzler",
     author_email="rogerselzler@cunet.carleton.ca",
-    packages=["maple"],
+    install_requires=['validators'],
+    packages=["maple_structures"],
 )

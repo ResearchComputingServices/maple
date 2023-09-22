@@ -17,9 +17,13 @@ cloud cloud as _cloud
 database Database as db <<device>>{
     artifact postgres {
         artifact Article
-        artifact User
         artifact Proccessed
-        artifact Search
+        artifact Topic
+        artifact User
+        artifact Task
+        artifact TaskProccessed
+        artifact YouTubeConfig
+        artifact YouTubeSearch
     }
 }
 

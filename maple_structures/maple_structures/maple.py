@@ -19,6 +19,8 @@ def _default_property(
 
     @prop.setter
     def prop(self, value):
+        if value is None:
+            return
         if not isinstance(value, property_type):
             raise TypeError(
                 f"{property_name} should be a {property_type} but {type(value)} was provided."
@@ -51,13 +53,13 @@ class Base(ABC):
     '''Base class for Maple objects.'''
     def __init__(self) -> None:
         super().__init__()
-        self._validate_default_keys()
+        # self._validate_default_keys()
 
-    def _validate_default_keys(self):
-        '''Validate default keys'''
-        _default = self.default_keys()
-        if not isinstance(_default, list):
-            raise TypeError("'default_keys' method should return a 'list'.")
+    # def _validate_default_keys(self):
+    #     '''Validate default keys'''
+    #     _default = self.default_keys()
+    #     if not isinstance(_default, list):
+    #         raise TypeError("'default_keys' method should return a 'list'.")
 
     @classmethod
     def validate(cls, value):
@@ -187,7 +189,7 @@ class Comments(Base):
     #TODO content, likes, shares, reply_content, comment_id
 
     def __init__(self) -> None:
-        pass
+        super.__init__()
 
     def default_keys(self):
         return self._default_keys
@@ -238,47 +240,37 @@ class Comments(Base):
 
 
 _article_properties = [
+    dict(name='uuid', type=str, default=None),
     dict(name="url", type=str, default="", validator=validators.url),
     dict(name="title", type=str, default=""),
     dict(name="summary", type=str, default=""),
     dict(name="content", type=str, default=""),
-    dict(
-        name="author",
-        type=list,
-        default={},
-        secondary_type=Author,
-        validator=Author.validate,
-    ),
-    dict(name="has_video", type=bool, default=False),
-    dict(
-        name="video_url",
-        type=list,
-        default=[],
-        secondary_type=str,
-        validator=validators.url,
-    ),
-    dict(name="date_published", type=str, default=""),
-    dict(name="date_modified", type=str, default=""),
-    dict(name="has_comments", type=bool, default=False),
-    dict(name="number_of_comments", type=int, default=0),
-    dict(name="has_likes", type=bool, default=False),
+    dict(name="author", type=list, default={}, secondary_type=Author, validator=Author.validate),
+    dict(name="video_url", type=list, default=[], secondary_type=str, validator=validators.url),
+    dict(name="date_published", type=str, default=None),
+    dict(name="date_modified", type=str, default=None),
+    dict(name="createDate", type=str, default=None),
+    dict(name="modifyDate", type=str, default=None),
     dict(name="number_of_likes", type=int, default=0),
-    dict(name="has_shares", type=bool, default=False),
     dict(name="number_of_shares", type=int, default=0),
     dict(name="comments", type=list, default=[], secondary_type=Comments),
-    dict(name="topic", type=list, secondary_type=str, default=[]),
+    # dict(name="topic", type=list, secondary_type=str, default=[]),
     dict(name="language", type=str, default=""),
+    dict(name="source", type=str, default=None),
     dict(name="geographic_location", type=str, default=""),
     dict(name="location_name", type=list, default=""),
     dict(name="metadata", type=dict, default={}),
 ]
 
+
 class Article(Base):
+    '''Article'''
     _properties = _article_properties.copy()
 
     _suppress_errors = False
 
     def __init__(self):
+        super().__init__()
         setattr(self, "_author", [])
         for prop in self._properties:
             setattr(
@@ -297,39 +289,41 @@ class Article(Base):
                 ),
             )
 
+    @property
     def default_keys(self):
-        return self._default_keys
+        return getattr(self, '_default_keys', [])
 
     def add_author(self, author: Author):
+        '''add author to article'''
         if not isinstance(author, Author):
             raise TypeError(
                 f"'author' should be of type {type(Author)}, not type {type(author)}"
             )
-        self._author.append(author)
+        if getattr(self, '_author', []) is None:
+            setattr(self,'_author', [])
+        setattr(self, '_author', getattr(self, '_author',[]).append(author))
+        # self._author.append(author)
 
-    def to_dict(self):
-        # out = dict(
-        #     title = self.title,
-        #     summary = self.summary,
-        #     content = self.content,
-        #     url = self.url,
-        #     author = [a.to_dict() for a in self.author],
-        # )
+    def to_dict(self, *, suppress_null = True):
+        '''converts Article to dictionary'''
         out = dict()
         for prop in self._properties:
             attr = getattr(self, prop["name"])
+            if suppress_null:
+                if attr is None:
+                    continue
             if isinstance(attr, list):
                 outlist = []
                 for val in attr:
                     try:
                         outlist.append(val.to_dict())
-                    except:
+                    except AttributeError:
                         outlist.append(val)
                 out[prop["name"]] = outlist
             else:
                 try:
                     out[prop["name"]] = attr.to_dict()
-                except:
+                except AttributeError:
                     out[prop["name"]] = attr
 
         for key in self.__dict__.keys():
@@ -340,6 +334,7 @@ class Article(Base):
 
     @staticmethod
     def from_json(data, *, mapping = None):
+        '''constructs an article provided the json'''
         if isinstance(data, str):
             try:
                 data = json.loads(data)
@@ -354,7 +349,7 @@ class Article(Base):
                 if key in mapping.keys():
                     converted[mapping[key]] = data.pop(key)
             
-            if any(key in data.keys() for key in converted.keys()):
+            if any(key in data.keys() for key in converted):
                 raise ValueError('Mapped key already exist in data')
             
             data.update(converted)
