@@ -1,9 +1,12 @@
 """functions to extract information from articles."""
+import logging
 import nltk
 import re
 import heapq
-from maple import Article
+from maple_structures import Article
+import openai
 
+logger = logging.getLogger('maple_proc')
 
 def filter_by_sentences(
     articles: list[Article],
@@ -105,3 +108,19 @@ def sentiment_analysis(articles: list[Article]) -> None:
     sentiment = SentimentIntensityAnalyzer()
     for article in articles:
         article.sentiment = sentiment.polarity_scores(article.content)
+        
+        
+def chat_summary(content: str, api_key: str):
+    openai.api_key = api_key
+    completion = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo-16k",
+        messages=[
+            {
+                "role":"user",
+                "content": f"summarize in less than 300 words the following content: '{content}'",
+            },   
+        ],
+    )
+    return completion.choices[0]['message']['content']
+    
+    

@@ -8,6 +8,6 @@ setup(
     url="https://github.com/ResearchComputingServices/maple/maple_proc",
     author="RCS Team",
     author_email="rogerselzler@cunet.carleton.ca",
-    # install_requires=['validators'],
+    install_requires=['spacy', 'geopy', 'transformers', 'scipy'],
     packages=["maple_processing"],
 )

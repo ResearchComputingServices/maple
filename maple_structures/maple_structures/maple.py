@@ -1,4 +1,4 @@
-'''
+'''Maple structures.
 '''
 
 from abc import ABC, abstractmethod
@@ -257,8 +257,8 @@ _article_properties = [
     # dict(name="topic", type=list, secondary_type=str, default=[]),
     dict(name="language", type=str, default=""),
     dict(name="source", type=str, default=None),
-    dict(name="geographic_location", type=str, default=""),
-    dict(name="location_name", type=list, default=""),
+    dict(name="geographic_location", type=str, default=None),
+    dict(name="location_name", type=str, default=None),
     dict(name="metadata", type=dict, default={}),
 ]
 
@@ -363,23 +363,25 @@ class Article(Base):
 
         for key in data.keys():
             if key in properties.keys():
-                if properties[key]["type"] is list:
-                    outlist = []
-                    for item in data[key]:
-                        try:
-                            outlist.append(
-                                properties[key]["secondary_type"].from_json(item)
-                            )
-                        except:
-                            outlist.append(item)
-                    setattr(article, key, outlist)
+                if key == 'metadata':
+                    for metadata_key in data[key]:
+                        setattr(article, metadata_key, data[key][metadata_key])
                 else:
-                    try:
-                        setattr(article, key, properties["type"].from_json(data[key]))
-                    except:
-                        setattr(article, key, data[key])
-            elif key == "metadata":
-                pass
+                    if properties[key]["type"] is list:
+                        outlist = []
+                        for item in data[key]:
+                            try:
+                                outlist.append(
+                                    properties[key]["secondary_type"].from_json(item)
+                                )
+                            except:
+                                outlist.append(item)
+                        setattr(article, key, outlist)
+                    else:
+                        try:
+                            setattr(article, key, properties["type"].from_json(data[key]))
+                        except:
+                            setattr(article, key, data[key])
             else:
                 setattr(article, key, data[key])
         return article

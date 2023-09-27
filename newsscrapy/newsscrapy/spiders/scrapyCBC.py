@@ -250,10 +250,10 @@ class CBCHeadlinesSpider(scrapy.Spider):
                     if url not in self.url_mapping.keys():
                         self.url_mapping[url] = news_content
                         yield scrapy.Request(url=url, callback=self.parse_news_content)
-                except exception as exc:
+                except Exception as exc:
                     self.logger.error(exc)
                     pass
-        except exception as exc:
+        except Exception as exc:
             self.logger.error(exc)
             pass
 
