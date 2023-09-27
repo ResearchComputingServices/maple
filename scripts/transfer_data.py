@@ -27,14 +27,19 @@ def transfer(maples: MapleAPI, mapled: MapleAPI, n: int):
             if len(articles) == 0:
                 return
             for article in articles:
-                attempted +=1
-                logger.debug(f"Transfering article with url: {article.url}")
                 
                 update_author = False
                 if '_author' in article.metadata:
                     article.metadata.pop('_author')
                     update_author = True
-                    
+                
+                if not hasattr(article, 'chat_summary'):
+                    logger.debug('Skipping article: missing chat_summary')
+                    continue
+                
+                attempted +=1
+                logger.debug(f"Transfering article with url: {article.url}")
+                
                 response = mapled.article_post(article)
                 if isinstance(response, requests.Response):
                     if response.status_code == 400:
