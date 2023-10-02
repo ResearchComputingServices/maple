@@ -82,7 +82,10 @@ class MapleAPI:
         response = self._put("article", body=article.to_dict())
         if response.status_code is not None:
             if response.status_code == 200:
-                return Article.from_json(response.json())
+                try:
+                    return Article.from_json(response.json())
+                except:
+                    return response
         return response
 
     def article_get(self, limit: int = None, page: int = None, hours: int = None):
@@ -109,7 +112,8 @@ class MapleAPI:
 
     def article_iterator(self, limit: int = None, page: int = None, hours: int = None):
         '''function to iterate through articles.'''
-        page = 0
+        if page is None:
+            page=0
         while True:
             articles = self.article_get(limit, page, hours)
             if isinstance(articles, requests.Response):

@@ -10,6 +10,7 @@ from itemadapter import ItemAdapter
 from maple_interface import MapleAPI
 from maple_structures import Article
 from maple_config import config as cfg
+from maple_processing.process import chat_summary
 
 # logger = logging.getLogger('MaplePipeline')
 # 
@@ -45,8 +46,17 @@ class NewsscrapyPipeline:
             response = self.maple.article_post(Article.from_json(item))
             if isinstance(response, Article):
                 self.logger.info("New article from %s", response.url)
-                self.logger.info("Should get chatgpt summary. key %s", self._chatgpt_apikey)
+                # self.logger.info("Should get chatgpt summary. key %s", self._chatgpt_apikey)
                 #TODO should use chatgpt to summarize
+                # if self._chatgpt_apikey is not None:
+                #     try:
+                #         summary = chat_summary(response.content, self._chatgpt_apikey)
+                #         setattr(response, 'chat_summary', summary)
+                #         response_update = self.maple.article_put(response)
+                #         if isinstance(response_update, Article):
+                #             self.logger.info('chat_summary updated: %s...', response_update.chat_summary[0:80])
+                #     except Exception as exc:
+                #         self.logger.error(exc)
         except Exception as exc:
             self.logger.error(exc)
         return item

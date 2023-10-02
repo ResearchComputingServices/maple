@@ -11,7 +11,7 @@
             "request": "launch",
             "program": "maple_data_fetcher/data_fetcher.py",
             // "args": ["-e", "prod", "-i", "10", "-l", "info", "-o"],
-            "args": ["-e", "dev", "-l", "info", "-o"],
+            "args": ["-e", "dev", "-i", "600", "-l", "info", "-o"],
             "console": "integratedTerminal",
             "justMyCode": true
         },
@@ -21,7 +21,8 @@
             "request": "launch",
             "program": "scripts/transfer_data.py",
             // "args": ["-s", "0.0.0.0:3000", "-d", "0.0.0.0:3000", "-n", "1"],
-            "args": ["-s", "0.0.0.0:3000", "-d", "0.0.0.0:3000", "-n", "3"],
+            // "args": ["-s", "0.0.0.0:3000", "-d", "0.0.0.0:3000", "-n", "3", "-j", "2500"],
+            "args": ["-s", "0.0.0.0:3000", "-d", "134.117.214.192:80", "-n", "2500", "-j", "0"],
             "console": "integratedTerminal",
             "justMyCode": true
         },
@@ -31,7 +32,7 @@
             "request": "launch",
             "program": "scripts/create_summaries.py",
             // "args": ["-s", "0.0.0.0:3000", "-d", "0.0.0.0:3000", "-n", "1"],
-            "args": ["-b", "0.0.0.0:3000", "-n", "2000"],
+            "args": ["-b", "0.0.0.0:3000", "-n", "4500"],
             "console": "integratedTerminal",
             "justMyCode": true
         },
