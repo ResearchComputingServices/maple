@@ -11,7 +11,7 @@ maple-structures/pyproject.toml
 maple-structures/build*
 maple-structures/dist*
 *.egg-info*
-data*
+data/
 tests*
 
 
