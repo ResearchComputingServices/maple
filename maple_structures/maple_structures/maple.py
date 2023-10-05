@@ -321,9 +321,9 @@ class Article(Base):
                         outlist.append(val)
                 out[prop["name"]] = outlist
             else:
-                try:
+                if hasattr(prop['type'], 'to_dict'):
                     out[prop["name"]] = attr.to_dict()
-                except AttributeError:
+                else:
                     out[prop["name"]] = attr
 
         for key in self.__dict__.keys():
@@ -364,23 +364,26 @@ class Article(Base):
         for key in data.keys():
             if key in properties.keys():
                 if key == 'metadata':
+                    invalid_metadata_keys = ['_author']
                     for metadata_key in data[key]:
-                        setattr(article, metadata_key, data[key][metadata_key])
+                        if metadata_key not in invalid_metadata_keys:
+                            setattr(article, metadata_key, data[key][metadata_key])
                 else:
                     if properties[key]["type"] is list:
                         outlist = []
-                        for item in data[key]:
-                            try:
-                                outlist.append(
-                                    properties[key]["secondary_type"].from_json(item)
-                                )
-                            except:
-                                outlist.append(item)
+                        if isinstance(data[key],list):
+                            for item in data[key]:
+                                try:
+                                    outlist.append(
+                                        properties[key]["secondary_type"].from_json(item)
+                                    )
+                                except:
+                                    outlist.append(item)
                         setattr(article, key, outlist)
                     else:
-                        try:
-                            setattr(article, key, properties["type"].from_json(data[key]))
-                        except:
+                        if hasattr(properties[key]["type"], 'from_json'):
+                            setattr(article, key, properties[key]["type"].from_json(data[key]))
+                        else:
                             setattr(article, key, data[key])
             else:
                 setattr(article, key, data[key])

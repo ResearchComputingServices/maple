@@ -15,10 +15,14 @@ from maple_processing.process import chat_summary
 # logger = logging.getLogger('MaplePipeline')
 # 
 
+
+
 class NewsscrapyPipeline:
     '''stores items in the database'''
     logger = logging.getLogger('MaplePipeline')
     # maple = MapleAPI("http://0.0.0.0:3000", apiversion="api/v1")
+    _url_history_size = 3000
+    _url_history = []
     
     def __init__(self, authority, chatgpt_apikey = None) -> None:
         self.maple = MapleAPI(authority, apiversion='api/v1')
@@ -42,21 +46,30 @@ class NewsscrapyPipeline:
         return cls(authority, chatgptkey)
 
     def process_item(self, item, spider):
-        try:
-            response = self.maple.article_post(Article.from_json(item))
-            if isinstance(response, Article):
-                self.logger.info("New article from %s", response.url)
-                # self.logger.info("Should get chatgpt summary. key %s", self._chatgpt_apikey)
-                #TODO should use chatgpt to summarize
-                # if self._chatgpt_apikey is not None:
-                #     try:
-                #         summary = chat_summary(response.content, self._chatgpt_apikey)
-                #         setattr(response, 'chat_summary', summary)
-                #         response_update = self.maple.article_put(response)
-                #         if isinstance(response_update, Article):
-                #             self.logger.info('chat_summary updated: %s...', response_update.chat_summary[0:80])
-                #     except Exception as exc:
-                #         self.logger.error(exc)
-        except Exception as exc:
-            self.logger.error(exc)
+        self.logger.debug('size of url history is %d', len(self._url_history))
+        if 'url' in item:
+            if item['url'] not in self._url_history:
+                self._url_history.append(item['url'])
+                #TODO remove anything older than 24 hours.
+                while len(self._url_history) > self._url_history_size:\
+                    self._url_history.pop(0)            
+                try:
+                    self.logger.debug("Attempt sending article to backend")
+                    response = self.maple.article_post(Article.from_json(item))
+                    if isinstance(response, Article):
+                        self.logger.info("New article from %s", response.url)
+                        # self.logger.info("Should get chatgpt summary. key %s", self._chatgpt_apikey)
+                        #TODO should use chatgpt to summarize
+                        # if self._chatgpt_apikey is not None:
+                        #     try:
+                        #         summary = chat_summary(response.content, self._chatgpt_apikey)
+                        #         setattr(response, 'chat_summary', summary)
+                        #         response_update = self.maple.article_put(response)
+                        #         if isinstance(response_update, Article):
+                        #             self.logger.info('chat_summary updated: %s...', response_update.chat_summary[0:80])
+                        #     except Exception as exc:
+                        #         self.logger.error(exc)
+                except Exception as exc:
+                    self.logger.error(exc)
+                    self._url_history.pop() # remove failed url.
         return item
