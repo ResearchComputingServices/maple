@@ -36,7 +36,6 @@ class Articles:
         self._page +=1
         return articles
         
-    # def __iter__(self)
 
 
 class MapleAPI:
@@ -110,10 +109,11 @@ class MapleAPI:
 
     def article_get(
         self, 
-        limit: int = None, 
-        page: int = None, 
-        hours: int = None, 
-        url: str = None):
+        limit: int = None,
+        page: int = None,
+        hours: int = None,
+        url: str = None,
+        uuid: str = None):
         params = dict()
         if limit is not None:
             params["limit"] = limit
@@ -123,6 +123,8 @@ class MapleAPI:
             params["hours"] = hours
         if url is not None:
             params["url"] = url
+        if uuid is not None:
+            params['uuid'] = uuid
         response = self._get("article", params=params)
         if response.status_code != 200:
             return response

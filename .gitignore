@@ -19,3 +19,5 @@ politics*
 backend/
 results*.json
 log_*
+logs/
+*.log

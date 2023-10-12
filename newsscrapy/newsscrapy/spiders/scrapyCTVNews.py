@@ -24,9 +24,8 @@ class CTVNewsSpider(scrapy.Spider):
     def parse_rss_link(self, response):
         if response:
             for url in response.xpath('//item//link//text()').getall():
-                yield 
+                yield scrapy.Request(url=url, callback=self.parse_news_content)
                 
-
     
     def parse_news_content(self, response):
         if not response:

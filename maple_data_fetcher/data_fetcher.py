@@ -5,6 +5,7 @@ import argparse
 import os
 import sys
 import time
+import rcs
 from maple_config import config as cfg
 sys.path.append(os.path.join(os.path.abspath(""), "newsscrapy"))
 
@@ -159,22 +160,12 @@ def main(args):
     if args.i is None:
         args.i = int(config['MAPLE_DATA_FETCHER_SPIDERS_INTERVAL_SECONDS'])
 
-    logging.basicConfig(
-        level=getattr(logging, args.l.upper()),
-        format='%(asctime)s %(levelname)s %(filename)s %(funcName)s(%(lineno)d) %(message)s',
-        handlers=[
-            RotatingFileHandler(
-                f"log_data_fetcher_{time.strftime('%y%m%d_%H%M')}.log",
-                mode='a',
-                maxBytes=5*1024*1024,
-                backupCount=2,
-                encoding=None,
-                delay=0,
-            ),
-            # logging.FileHandler(f"log_data_fetcher_{time.strftime('%y%m%d_%H%M')}.log"),
-            logging.StreamHandler(),
-            
-        ])
+    rcs.utils.configure_logging(
+        level = args.l,
+        output_directory='logs',
+        output_filename_prefix='data_fetcher',
+    )
+    
     logger.debug("args: %s", args)
     logger.debug("config: %s", config)
 
