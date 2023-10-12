@@ -10,6 +10,8 @@ pip install --upgrade pip
 
 pip install -r requirements.txt
 
+pip install python-socketio python-socketio[client]
+
 cd maple_structures
 
 pip install -e .
@@ -30,4 +32,13 @@ pip install -e .
 
 cd ../
 
+cdir=$(pwd)
+cd ~
+[ -d rcs-utils ] && echo "rcs directory already exist" || git clone git@github.com:ResearchComputingServices/rcs-utils.git
+cd rcs-utils
+git pull
+pip install -e .
+cd $cdir
 
+
+# pm2 start scripts/chatgpt_process.py --interpreter .venv/bin/python3 

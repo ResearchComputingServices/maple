@@ -51,7 +51,7 @@ def update_article(maple, uuid):
     articles = maple.article_get(uuid=uuid)
     if len(articles) > 0:
         if len(articles) != 1:
-            logger.warning("should not have returned more than one article. uuid: %s, maple: %s", uuid, maple._authority)
+            logger.warning("should not have returned more than one article. uuid: %s, maple: %s, len %d", uuid, maple._authority, len(articles))
         article = articles[0]
         
         if not hasattr(article, 'chat_summary'):
@@ -85,7 +85,14 @@ class ChatProcess:
     
     def __init__(self) -> None:
         self._maple = MapleAPI(f"http://{config['MAPLE_BACKEND_IP']}:{config['MAPLE_BACKEND_PORT']}")
+        self.__get_unprocessed_uuids()
         
+    def __get_unprocessed_uuids(self):
+        for articles in self._maple.article_iterator():
+            for article in articles:
+                if not hasattr(article, 'chat_summary'):
+                    with self.lock:
+                        self._process_uuid.append(article.uuid)
     
     async def process(self):
         tstart = time.time()

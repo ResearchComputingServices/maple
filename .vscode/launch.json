@@ -11,7 +11,7 @@
             "request": "launch",
             "program": "maple_data_fetcher/data_fetcher.py",
             // "args": ["-e", "prod", "-i", "10", "-l", "info", "-o"],
-            "args": ["-e", "dev", "-i", "600", "-l", "info", "-o"],
+            "args": ["-e", "prod", "-i", "600", "-l", "info", "-o"],
             "console": "integratedTerminal",
             "justMyCode": true
         },
