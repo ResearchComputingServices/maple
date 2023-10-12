@@ -6,19 +6,53 @@
 
 # useful for handling different item types with a single interface
 import logging
+import requests
+import time
 from itemadapter import ItemAdapter
 from maple_interface import MapleAPI
 from maple_structures import Article
 from maple_config import config as cfg
 from maple_processing.process import chat_summary
+import socketio
+import threading
 
-# logger = logging.getLogger('MaplePipeline')
-# 
 
+class ProcessArticles:
+    uuids_to_process = []
+    name = 'ProcessArticles'
+    
+    def __init__(self) -> None:
+        self.sio = socketio.Client()
+        self.logger = logging.getLogger(self.name)
+        
+    def add_uuid(self, uuid):
+        if uuid not in self.uuids_to_process:
+            self.uuids_to_process.append(uuid)
+        print(self.uuids_to_process)
+    
+    def send_uuids(self):
+        if not self.sio.connected:
+            # TODO grab port from config.
+            self.sio.connect('http://0.0.0.0:5003')
+            
+        uuids = self.uuids_to_process.copy()
+    
+        for uuid in uuids:
+            try:
+                self.logger.debug('sending uuid')
+                self.sio.emit("new_article", uuid)
+                self.uuids_to_process.remove(uuid)
+                self.logger.debug('uuid %s sent!', uuid)
+            except Exception as exc:
+                self.logger.error('Failed to send uuid %s. Retry on next call.', uuid, exc)        
+    
 class NewsscrapyPipeline:
     '''stores items in the database'''
     logger = logging.getLogger('MaplePipeline')
     # maple = MapleAPI("http://0.0.0.0:3000", apiversion="api/v1")
+    _url_history_size = 3000
+    _url_history = []
+    _process_articles = ProcessArticles()
     
     def __init__(self, authority, chatgpt_apikey = None) -> None:
         self.maple = MapleAPI(authority, apiversion='api/v1')
@@ -42,21 +76,35 @@ class NewsscrapyPipeline:
         return cls(authority, chatgptkey)
 
     def process_item(self, item, spider):
-        try:
-            response = self.maple.article_post(Article.from_json(item))
-            if isinstance(response, Article):
-                self.logger.info("New article from %s", response.url)
-                # self.logger.info("Should get chatgpt summary. key %s", self._chatgpt_apikey)
-                #TODO should use chatgpt to summarize
-                # if self._chatgpt_apikey is not None:
-                #     try:
-                #         summary = chat_summary(response.content, self._chatgpt_apikey)
-                #         setattr(response, 'chat_summary', summary)
-                #         response_update = self.maple.article_put(response)
-                #         if isinstance(response_update, Article):
-                #             self.logger.info('chat_summary updated: %s...', response_update.chat_summary[0:80])
-                #     except Exception as exc:
-                #         self.logger.error(exc)
-        except Exception as exc:
-            self.logger.error(exc)
+        self.logger.debug('size of url history is %d', len(self._url_history))
+        if 'url' in item:
+            if item['url'] not in self._url_history:
+                self._url_history.append((item['url'], time.time()))
+                #remove anything older than 24 hours.
+                while True:
+                    if len(self._url_history) > 0:
+                        if (time.time() - self._url_history[0][1]) > 86400:
+                            self.logger.debug('removing article from url history: %s', self._url_history[0][1]['url'])
+                            self._url_history.pop(0)
+                        else:
+                            break
+                    else:
+                        break
+                while len(self._url_history) > self._url_history_size:\
+                    self._url_history.pop(0)            
+                try:
+                    self.logger.debug("Attempt sending article to backend")
+                    response = self.maple.article_post(Article.from_json(item))
+                    if isinstance(response, Article):
+                        self.logger.info("New article (%s) from %s", response.uuid, response.url)
+                        self._process_articles.add_uuid(response.uuid)
+                        self._process_articles.send_uuids()
+                    elif isinstance(response, requests.Response):
+                        if response.status_code == 400:
+                            self.logger.debug('Article already exist in backend: %s', item['url'] if 'url' in item else 'unknown url')
+                        else:
+                            self.logger.warning('Could not store article. Status code: %d, %s', response.status_code, response.text)
+                except Exception as exc:
+                    self.logger.error(exc)
+                    self._url_history.pop() # remove failed url.
         return item
