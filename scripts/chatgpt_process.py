@@ -85,18 +85,31 @@ class ChatProcess:
     
     def __init__(self) -> None:
         self._maple = MapleAPI(f"http://{config['MAPLE_BACKEND_IP']}:{config['MAPLE_BACKEND_PORT']}")
-        self.__get_unprocessed_uuids()
+        # self.__get_unprocessed_uuids()
         
-    def __get_unprocessed_uuids(self):
-        for articles in self._maple.article_iterator():
-            for article in articles:
-                if not hasattr(article, 'chat_summary'):
-                    with self.lock:
-                        self._process_uuid.append(article.uuid)
-    
+    async def get_unprocessed_uuids(self):
+        while True:
+            logger.info('Retrieving unprocessed uuids')
+            try:
+                for articles in self._maple.article_iterator():
+                    for article in articles:
+                        if not hasattr(article, 'chat_summary'):
+                            with self.lock:
+                                self._process_uuid.append(article.uuid)
+            except Exception as exc:
+                logger.error('Failed to get unprocessed article uuids. %s', exc)
+                
+            sec = rcs.utils.time_to_midnight()
+            logger.info('retrieving of uuids will be performed again in %f hours.', sec/60/60)
+            await asyncio.sleep(sec)
+            
     async def process(self):
         tstart = time.time()
+        debug_time = tstart
         while True:
+            if ((time.time() - debug_time) >= 60):
+                debug_time = time.time()
+                logger.debug('elapsed time: (%d)', time.time()-tstart)
             for uiud_i, uuid in enumerate(self._process_uuid.copy()):
                 if uiud_i == 0:
                     logger.debug('Processing new batch of uuids')
@@ -121,6 +134,7 @@ class ChatProcess:
 chatprocess = ChatProcess()
 loop = asyncio.get_event_loop()
 asyncio.ensure_future(chatprocess.process(), loop=loop)
+asyncio.ensure_future(chatprocess.get_unprocessed_uuids(), loop=loop)
 
 
 @sio.event

@@ -120,6 +120,7 @@ def chat_summary(content: str, api_key: str):
                 "content": f"summarize in less than 300 words the following content: '{content}'",
             },   
         ],
+        timeout = 40,
     )
     return completion.choices[0]['message']['content']
     
