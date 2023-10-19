@@ -10,52 +10,69 @@
 ### Data structures
 
 ```mermaid
-classDiagram
+erDiagram
+    ModelIteration ||--|{Model: contains
+    Model ||--|{Topic : contains
+    Processed }|--|{ ModelIteration : contains
+    Processed ||--|{ Topic: contains
+    Article ||--|{ Processed: contains
+    ModelIteration {
+        String uuid PK
+        Date createDate
+        Date modifyDate
+        String type "bert || stm || lda"
+        Model model_level1 FK
+        Model model_level2 FK
+        Model model_level3 FK
+        int article_trained "the number of articles used in training"
+        int[] article_classified "the number of articles classified"
+    }
 
-    class ModelIteration {
-        +String type [bert, stm, lda]
-        +Model level1model
-        +Model level2model
-        +Model level3model
-        +Date createDate
-        +Date modifyDate
-        +String status [created, training, classifying, complete]
-        +int article_count
-        +[int] article_classified
+    Model{
+        String uuid PK
+        Date createDate
+        Date modifyDate
+        String type "bert || stm || lda"
+        String name
+        String status "created || training || classifying || complete]"
+        int level
+        Topic[] topic FK
+        String path
     }
-    class Model{
-        +String uuid
-        +String type [bert, stm, lda]
-        +String name
-        +int level
-        +[Topic] topic
-        -String path
+
+    Topic{
+        String uuid PK
+        Date createDate
+        Date modifyDate
+        String[] keywords
+        String label
+        String[] dot_summary
+        Float prevalence
+        Point center
+        Object wordcloud
+        todo plot "<!-- plot over time, number of articles, sentiment around it. -->"
     }
-    class Topic{
-        -String model_uuid
-        +[String] keywords
-        +String label
-        +[String] dot_summary
-        +Float prevalence
-        +Point center
-        ?+Object wordcloud
-        ---plot over time, number of articles, sentiment around it.
+
+    Processed {
+        String uuid PK
+        Date createDate
+        Date modifyDate
+        String article_uuid FK
+        String ModelIteration FK
+        String topic_level1 FK
+        Float level_1_prob
+        String topic_level2 FK
+        Float level_2_prob
+        String topic_level3 FK
+        Float level_3_prob
+        Point position
     }
-    class Proccessed {
-        -String article_uuid
-        -String ModelIteration
-        -String model_type [bert, stm, lda]
-        -String level_1_topic_uuid
-        -Float level_1_prob
-        -String level_2_topic_uuid
-        -Float level_2_prob
-        -String level_3_topic_uuid
-        -Float level_3_prob
-        -Point position
-    }
-    class ArticleEmbeddings {
-        +String uuid
-        +String shingle
+
+    ArticleEmbeddings {
+        String uuid PK
+        Date createDate
+        Date modifyDate
+        String shingle
 
     }
 ```
