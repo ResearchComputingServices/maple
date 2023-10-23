@@ -42,4 +42,4 @@ cd $cdir
 
 
 # pm2 start scripts/chatgpt_process.py --interpreter .venv/bin/python3 
-# pm2 start maple_data_fetcher/data_fetcher.py --interpreter .venv/bin/python3  -- -e prod -i 600 -l info -o
+# pm2 start maple_data_fetcher/data_fetcher.py --interpreter .venv/bin/python3  -- -e prod -i 600 -l info
