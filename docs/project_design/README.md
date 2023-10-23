@@ -33,6 +33,7 @@ erDiagram
         Date createDate
         Date modifyDate
         String type "bert || stm || lda"
+        String version
         String name
         String status "created || training || classifying || complete]"
         int level
@@ -44,7 +45,7 @@ erDiagram
         String uuid PK
         Date createDate
         Date modifyDate
-        String[] keywords
+        String[] keyword
         String label
         String[] dot_summary
         Float prevalence
