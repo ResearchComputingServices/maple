@@ -11,11 +11,11 @@ for articles in maple.article_iterator():
         try:
             dump_articles.append(article.to_dict())
             if hasattr(article, 'chat_summary'):
-                chat_summary_count +=1
-            else: 
+                chat_summary_count += 1
+            else:
                 p(f"Article without chat_summary: {article.uuid} {article.url}\n{json.dumps(article.to_dict(), indent=2)}")
         except Exception as exc:
-            print(exc)            
+            print(exc)
 
 FILENAME = 'data/dump.json'
 try:
