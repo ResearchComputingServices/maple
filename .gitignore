@@ -1,6 +1,7 @@
 .venv*
 # .vscode*
 *.DS_Store*
+.idea
 
 _news*
 *__pycache_*
@@ -21,3 +22,5 @@ results*.json
 log_*
 logs/
 *.log
+
+summaries.csv
