@@ -54,8 +54,8 @@ class Base(ABC):
         return out
 
     # @staticmethod
+
     @abstractmethod
-    @classmethod
     def from_dict(cls, data: dict):
         """Populates the class using data"""
         data_ = data.copy()
@@ -63,9 +63,58 @@ class Base(ABC):
             print(property)
         raise NotImplementedError()
 
+    # @abstractmethod
+    # def to_json(self):
+    #    d = self.to_dict()
+    #    json = json.dumps(d)
+    #    return json
+
 
 class Model(Base):
-    pass
+    '''Model'''
+    _properties = [
+        Property('uuid', type=str, default=None),
+        Property('createDate', type=str, default=None),
+        Property('modifyDate', type=str, default=None),
+        Property('type', type=str, default=None),
+        Property('version', type=str, default=None),
+        Property('name', type=str, default=None),
+        Property('status', type=str, default=None),
+        Property('level', type=int, default=1),
+        Property('path', type=str, default=None),
+        # Should we specify if a list of topics
+        Property('topic', type=list, default=None)
+    ]
+
+    def __init__(self, *,
+                 type: str = None,
+                 version: str = None,
+                 name: str = None,
+                 status: str = None,
+                 level: int = None,
+                 path: str = None,
+                 # topic: [Topic] = None):
+                 topic: [] = None):
+        loc = locals()
+        super().__init__()
+        for var in ['type', 'version', 'name', 'status', 'level', 'path', 'topic']:
+            if loc[var] is not None:
+                setattr(self, var, loc[var])
+
+    @property
+    def properties(self):
+        return self._properties
+
+    def to_dict(self):
+        '''Converts Model to dictionary'''
+        return super().to_dict()
+
+    @staticmethod
+    def from_dict(data: dict):
+        out = super().from_dict(data)
+        extra = dict(metadata={})
+        out.update(extra)
+        return out
 
 
 class Dummy:
@@ -117,12 +166,21 @@ class Topic(Base):  # We have to replace it with the topic base
 
     @staticmethod
     def from_dict(data: dict):
-        return super().from_dict(data)
+        out = super().from_dict(data)
+        extra = dict(metadata={})
+        out.update(extra)
+        return out
 
 
 if __name__ == "__main__":
     topic = Topic(name='Roger', dot_summary=['blash', 'teste'])
     print(json.dumps(topic.to_dict(), indent=2))
+
     # topic2 = Topic.from_dict(topic.to_dict)
-    # print(json.dumps(topic2.to_dict(), indent=2))
+    # c;print(json.dumps(topic2.to_dict(), indent=2))
+
+    model = Model(type='bert', version="vb", level=1,
+                  path="path_to_model", topic=['1', '2', '3'])
+    print(json.dumps(model.to_dict(), indent=2))
+
     pass
