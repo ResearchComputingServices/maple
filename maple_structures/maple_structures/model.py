@@ -1,5 +1,7 @@
+from __future__ import annotations
 from abc import ABC, abstractmethod
 import json
+import pprint
 
 
 class Property:
@@ -23,20 +25,20 @@ class Base(ABC):
     """Base class used by structures in this file.
     """
     _properties = []
+
     def __init__(self) -> None:
         # super().__init__()
         for prop in self.properties:
             setattr(self, prop.name, prop.default)
 
-    
     @property
     @abstractmethod
     def properties(self) -> [Property]:
         raise NotImplementedError()
-    
+
     @property
     def properties_dict(self):
-        return {prop.name:prop for prop in self.properties}
+        return {prop.name: prop for prop in self.properties}
 
     @abstractmethod
     def to_dict(self, *, exclude: list[Property] = None):
@@ -54,7 +56,7 @@ class Base(ABC):
                             out[prop.name].append(item.to_dict())
                         else:
                             out[prop.name].append(item)
-                if hasattr(getattr(self, prop.name),'to_dict'):
+                if hasattr(getattr(self, prop.name), 'to_dict'):
                     out[prop.name] = getattr(self, prop.name).to_dict()
                 else:
                     out[prop.name] = getattr(self, prop.name)
@@ -78,42 +80,45 @@ class Base(ABC):
                     if prop.type == list:
                         setattr(obj, prop_name, [])
                         if not isinstance(data_[prop_name], list):
-                            raise TypeError(f"{prop_name} should be of type {prop.type}")
+                            raise TypeError(
+                                f"{prop_name} should be of type {prop.type}")
                         for data_item in data_[prop_name]:
                             if hasattr(prop.secondary_type, 'from_dict'):
-                                getattr(obj, prop_name).append(prop.secondary_type.from_dict(data_item))
+                                getattr(obj, prop_name).append(
+                                    prop.secondary_type.from_dict(data_item))
                             else:
                                 getattr(obj, prop_name).append(data_item)
                     elif hasattr(prop.type, 'from_dict'):
-                        setattr(obj, prop_name, prop.type.from_dict(data[prop_name]))
+                        setattr(obj, prop_name,
+                                prop.type.from_dict(data[prop_name]))
                     else:
                         setattr(obj, prop_name, data[prop_name])
-                
+
         return obj
-            
 
     # @abstractmethod
+
     def to_json(self):
         return json.dumps(self.to_dict())
 
 
-class Topic(Base):  # We have to replace it with the topic base
+class Topic(Base):
     '''Topic'''
     _properties = [
-            Property('uuid', type=str, default=None),
-            Property('createDate', type=str, default=None),
-            Property('modifyDate', type=str, default=None),
-            Property('name', type=str, default=None),
-            Property('keyword', type=list, default=None),
-            Property('label', type=str, default=None),
-            Property('dot_summary', type=list,
-                    default=None, secondary_type=str),
-            Property('prevalence', type=float, default=None),
-            Property('center', type=list, default=None, secondary_type=float),
-            Property('wordcloud', type=dict, default=None),
-            Property('chart', type=dict, default=None),
-            # Property('model', type=globals()['Model'], default=None)
-        ]
+        Property('uuid', type=str, default=None),
+        Property('createDate', type=str, default=None),
+        Property('modifyDate', type=str, default=None),
+        Property('name', type=str, default=None),
+        Property('keyword', type=list, default=None),
+        Property('label', type=str, default=None),
+        Property('dot_summary', type=list,
+                 default=None, secondary_type=str),
+        Property('prevalence', type=float, default=None),
+        Property('center', type=list, default=None, secondary_type=float),
+        Property('wordcloud', type=dict, default=None),
+        Property('chart', type=dict, default=None),
+        # Property('model', type=globals()['Model'], default=None)
+    ]
 
     def __init__(self, *,
                  name: str = None,
@@ -125,7 +130,8 @@ class Topic(Base):  # We have to replace it with the topic base
                  wordcloud: dict = None,
                  chart: dict = None,
                  model: 'Model' = None):
-        self._properties.append(Property('model', type=globals()['Model'], default=None))
+        self._properties.append(
+            Property('model', type=globals()['Model'], default=None))
         loc = locals()
         super().__init__()
         for var in ['name', 'keyword', 'label', 'dot_summary', 'prevalence', 'center', 'wordcloud', 'chart', 'model']:
@@ -144,7 +150,7 @@ class Topic(Base):  # We have to replace it with the topic base
             if hasattr(self, 'model'):
                 out['model'] = self.model.to_dict()
         return out
-    
+
     @classmethod
     def from_dict(cls, data: dict):
         return super()._from_dict(cls, data)
@@ -153,17 +159,17 @@ class Topic(Base):  # We have to replace it with the topic base
 class Model(Base):
     '''Model'''
     _properties = [
-            Property('uuid', type=str, default=None),
-            Property('createDate', type=str, default=None),
-            Property('modifyDate', type=str, default=None),
-            Property('type', type=str, default=None),
-            Property('version', type=str, default=None),
-            Property('name', type=str, default=None),
-            Property('status', type=str, default=None),
-            Property('level', type=int, default=1),
-            Property('path', type=str, default=None),
-            Property('topic', type=list, default=None, secondary_type=Topic)
-        ]
+        Property('uuid', type=str, default=None),
+        Property('createDate', type=str, default=None),
+        Property('modifyDate', type=str, default=None),
+        Property('type', type=str, default=None),
+        Property('version', type=str, default=None),
+        Property('name', type=str, default=None),
+        Property('status', type=str, default=None),
+        Property('level', type=int, default=1),
+        Property('path', type=str, default=None),
+        Property('topic', type=list, default=None, secondary_type=Topic)
+    ]
 
     def __init__(self, *,
                  type: str = None,
@@ -186,18 +192,17 @@ class Model(Base):
 
     def to_dict(self, *, include_topic: bool = False):
         '''Converts Model to dictionary'''
-        exclude = [prop for prop in self.properties if prop.name=='topic']
-        out =  super().to_dict(exclude=exclude)
+        exclude = [prop for prop in self.properties if prop.name == 'topic']
+        out = super().to_dict(exclude=exclude)
         if include_topic:
             topics = getattr(self, 'topic')
             if topics is not None:
-                out['topic']=[]
+                out['topic'] = []
                 for topic in topics:
                     out['topic'].append(
                         topic.to_dict(include_model=False)
                     )
         return out
-        
 
     @classmethod
     def from_dict(cls, data: dict):
@@ -205,40 +210,158 @@ class Model(Base):
         if 'topic' in data:
             setattr(out, 'topic', [])
             for topic in data['topic']:
-                getattr(out,'topic').append(Topic.from_dict(topic))
+                getattr(out, 'topic').append(Topic.from_dict(topic))
         return out
-    
+
     def add_topic(self, topic: Topic):
         if getattr(self, 'topic', None) is None:
-            setattr(self,'topic', [])
-        getattr(self,'topic').append(topic)
+            setattr(self, 'topic', [])
+        getattr(self, 'topic').append(topic)
+
+
+class ModelIteration(Base):
+    '''Model Iteration'''
+    _properties = [
+        Property('uuid', type=str, default=None),
+        Property('createDate', type=str, default=None),
+        Property('modifyDate', type=str, default=None),
+        Property('name', type=str, default=None),
+        Property('type', type=list, default=None),
+        Property('model_level1', type=Model, default=None),
+        Property('model_level2', type=Model, default=None),
+        Property('model_level3', type=Model, default=None),
+        Property('article_trained', type=int, default=0),
+        Property('article_classified', type=int, default=0),
+    ]
+
+    def __init__(self, *,
+                 name: str = None,
+                 type: [str] = None,
+                 model_level1: Model = None,
+                 model_level2: Model = None,
+                 model_level3: Model = None,
+                 article_trained: int = 0,
+                 article_classified: int = 0):
+        loc = locals()
+        super().__init__()
+        for var in ['name', 'type', 'model_level1', 'model_level2', 'model_level3', 'article_trained', 'article_classified']:
+            if loc[var] is not None:
+                setattr(self, var, loc[var])
+
+    @property
+    def properties(self):
+        return self._properties
+
+    # Should this simpler method replace the to_dict?
+    def to_dict_simple(self):
+        '''Converts Model Iteration to dictionary'''
+        return super().to_dict()
+
+    def to_dict(self, include_model: bool = True, include_topic: bool = True):
+        '''Converts Model Iteration to dictionary'''
+        out = super().to_dict()
+        if include_model:
+            if hasattr(self, 'model_level1'):
+                if self.model_level1 is not None:
+                    out['model_level1'] = self.model_level1.to_dict(
+                        include_topic=include_topic)
+            if hasattr(self, 'model_level2'):
+                if self.model_level2 is not None:
+                    out['model_level2'] = self.model_level2.to_dict(
+                        include_topic=include_topic)
+            if hasattr(self, 'model_level3'):
+                if self.model_level3 is not None:
+                    out['model_level3'] = self.model_level3.to_dict(
+                        include_topic=include_topic)
+        return out
+
+    @staticmethod
+    def from_dict(data: dict):
+        out = super().from_dict(data)
+        extra = dict(metadata={})
+        out.update(extra)
+        return out
+
+    def add_model_level(self, level: str,  model: Model):
+        if getattr(self, level, None) is None:
+            setattr(self, level, model)
+        # getattr(self, level).append(model)
 
 
 if __name__ == "__main__":
-    topic = Topic(name='Topic1', dot_summary=['topic 1 is awesome', 'Completely related to something.'])
+    topic = Topic(name='Topic1', dot_summary=[
+                  'topic 1 is awesome', 'Completely related to something.'])
     print('Topic:')
     print(json.dumps(topic.to_dict(), indent=2))
 
-    
     topic2 = Topic.from_dict(topic.to_dict())
     print('Topic from_dict:')
     print(topic2.to_dict())
-    
+
     model = Model(type='bert', level=1)
-    
+
     print("Topic to_dict with model")
     topic2.model = model
     print(topic2.to_dict(include_model=True))
-    
+
     model.add_topic(topic)
     model.add_topic(topic2)
-    
+
     print("Model to_dict with topics:")
     print(model.to_dict(include_topic=True))
     model2 = Model.from_dict(model.to_dict(include_topic=True))
-    
+
     print("model2 from_dict")
     print(model2.to_dict(include_topic=True))
 
-    
+    print("================================================ ")
+    model1 = Model(type='bert', level=1)
+    topic1 = Topic(name='GazaConflict', dot_summary=[
+        'Conflict in Gaza', 'War crisis'])
+    topic2 = Topic(name='HousingCrisis', dot_summary=[
+        'Canda wide housing crisis', 'Rental and buying properties'])
+
+    topic1.model = model1
+    topic2.model = model1
+    model1.add_topic(topic1)
+    model1.add_topic(topic2)
+    print(model1.to_dict(include_topic=True))
+
+    model2 = Model(type='stm', level=1)
+    topic3 = Topic(name='GazaConflict', dot_summary=[
+        'Conflict in Gaza', 'War crisis'])
+    topic4 = Topic(name='HousingCrisis', dot_summary=[
+        'Canda wide housing crisis', 'Rental and buying properties'])
+
+    topic3.model = model2
+    topic4.model = model2
+    model2.add_topic(topic3)
+    model2.add_topic(topic4)
+
+    print("================================================ ")
+    # model_it1 = ModelIteration(name='it1', type='bert', model_level1=model1,
+    #                           article_trained=2000, article_classified=1885)
+
+    # model_it1 = ModelIteration(name='it1', type='bert', model_level1=model1,
+    #                           model_level2=model2, article_trained=2000, article_classified=1885)
+
+    # model_it1 = ModelIteration(name='it1', type='bert', model_level1=model1,
+    #                           article_trained=2000, article_classified=1885)
+
+    model_it1 = ModelIteration(
+        name='it1', type='bert', article_trained=2000, article_classified=1885)
+
+    print(model_it1.to_dict())
+
+    print("======================================================")
+    model_it1.add_model_level('model_level1', model1)
+    model_it1.add_model_level('model_level2', model2)
+    model_it1.add_model_level('model_level3', model1)
+
+    # print(model_it1.to_dict(include_model=True, include_topic=True))
+    pprint.pprint(model_it1.to_dict())
+
+    # print("..............................................")
+    # print(model_it1.to_dict_simple())
+
     pass
