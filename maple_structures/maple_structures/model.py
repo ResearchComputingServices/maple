@@ -240,4 +240,5 @@ if __name__ == "__main__":
     print("model2 from_dict")
     print(model2.to_dict(include_topic=True))
 
+    
     pass
