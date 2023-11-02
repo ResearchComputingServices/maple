@@ -4,6 +4,7 @@ from requests import exceptions as request_exc
 import logging
 from maple_structures import Article
 from maple_structures import Topic
+from maple_structures import Model
 
 logger = logging.getLogger("MapleAPI")
 
@@ -201,6 +202,52 @@ class MapleAPI:
             if response.status_code == 200:
                 try:
                     return Topic.from_dict(response.json())
+                except:
+                    return response
+        return response
+
+    def model_post(self, model: Model):
+        "Posts a model in the database."
+        response = self._post("model", params=None, body=model.to_dict())
+
+        if response.status_code is not None:
+            if response.status_code != 201:
+                return response
+            try:
+                return Model.from_dict(response.json())
+            except request_exc.ConnectionError as exc:
+                logger.error("No connection to backend server. %s", exc)
+            except Exception as exc:
+                if self._suppress_errors:
+                    return None
+                else:
+                    raise exc
+        else:
+            if not self._suppress_errors:
+                raise ConnectionError()
+            return {}
+
+    def model_get(self):
+        response = self._get("model")
+        if response.status_code != 200:
+            return response
+        else:
+            try:
+                models_json = response.json()
+                ret = []
+                for model_json in models_json:
+                    ret.append(Model.from_dict(model_json))
+                return ret
+            except Exception as exc:
+                logger.error(exc)
+                return []
+
+    def model_put(self, model: Model) -> Model:
+        response = self._put("model", body=model.to_dict())
+        if response.status_code is not None:
+            if response.status_code == 200:
+                try:
+                    return Model.from_dict(response.json())
                 except:
                     return response
         return response
