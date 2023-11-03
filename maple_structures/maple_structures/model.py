@@ -2,7 +2,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 import json
 import pprint
-
+from .maple import Article
 
 class Property:
     """Property used by underlying structures.
@@ -288,6 +288,58 @@ class ModelIteration(Base):
         # getattr(self, level).append(model)
 
 
+class Processed(Base):
+    '''Model Iteration'''
+    _properties = [
+        Property('uuid', type=str, default=None),
+        Property('createDate', type=str, default=None),
+        Property('modifyDate', type=str, default=None),
+        Property('article', type=Article, default=None),
+        Property('modelIteration', type=ModelIteration, default=None),
+        Property('topic_level1', type=Topic, default=None),
+        Property('topic_level1_prob', type=float, default=None),
+        Property('topic_level2', type=Topic, default=None),
+        Property('topic_level2_prob', type=float, default=None),
+        Property('topic_level3', type=Topic, default=None),
+        Property('topic_level3_prob', type=float, default=None),
+        Property('position', type=list[float], default=None),
+    ]
+    
+    def __init__(
+        self,
+        article: Article = None,
+        modelIteration: ModelIteration = None,
+        topic_level1: Topic = None,
+        topic_level1_prob: float = None,
+        topic_level2: Topic = None,
+        topic_level2_prob: float = None,
+        topic_level3: Topic = None,
+        topic_level3_prob: float = None,
+        position: list[float] = None
+        ) -> None:
+        loc = locals()
+        super().__init__()
+        for var in [
+            'article', 
+            'modelIteration', 
+            'topic_level1', 
+            'topic_level1_prob', 
+            'topic_level2', 
+            'topic_level2_prob', 
+            'topic_level3', 
+            'topic_level3_prob', 
+            'position']:
+            if loc[var] is not None:
+                setattr(self, var, loc[var])
+
+    def to_dict(self):
+        return super().to_dict()
+    
+    @classmethod
+    def from_dict(cls, data: dict):
+        return super()._from_dict(cls, data)
+
+    
 if __name__ == "__main__":
     topic = Topic(name='Topic1', dot_summary=[
                   'topic 1 is awesome', 'Completely related to something.'])

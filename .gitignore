@@ -13,7 +13,7 @@ maple-structures/build*
 maple-structures/dist*
 *.egg-info*
 data/
-tests*
+# tests*
 
 
 politics*
