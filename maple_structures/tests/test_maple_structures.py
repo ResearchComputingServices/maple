@@ -3,9 +3,10 @@ import logging
 from maple_structures import Processed, Topic, Model, ModelIteration
 from uuid import uuid4 as uuid
 import copy
+import json
 
 logger = logging.getLogger('test_maple_tructures')
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
                            
 class TestTopic(unittest.TestCase):
     def setup_topic(self):
@@ -120,6 +121,8 @@ class TestModelIteration(unittest.TestCase):
         model_iteration_dict = self.model_iteration.to_dict()
         model_iteration = ModelIteration.from_dict(model_iteration_dict)
         self.assertEqual(model_iteration.to_dict(), model_iteration_dict)
+        logger.debug("Model_iteration from_dict() then to_dict()")
+        logger.debug(json.dumps(model_iteration.to_dict(include_model=True),indent=2))
 
 class TestProcessed(unittest.TestCase):
     pass

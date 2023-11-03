@@ -226,7 +226,7 @@ class ModelIteration(Base):
         Property('createDate', type=str, default=None),
         Property('modifyDate', type=str, default=None),
         Property('name', type=str, default=None),
-        Property('type', type=list, default=None),
+        Property('type', type=str, default=None),
         Property('model_level1', type=Model, default=None),
         Property('model_level2', type=Model, default=None),
         Property('model_level3', type=Model, default=None),
@@ -275,11 +275,9 @@ class ModelIteration(Base):
                         include_topic=include_topic)
         return out
 
-    @staticmethod
-    def from_dict(data: dict):
-        out = super().from_dict(data)
-        extra = dict(metadata={})
-        out.update(extra)
+    @classmethod
+    def from_dict(cls, data: dict):
+        out = super()._from_dict(cls, data)
         return out
 
     def add_model_level(self, level: str,  model: Model):
