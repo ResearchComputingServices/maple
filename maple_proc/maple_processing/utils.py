@@ -25,7 +25,7 @@ model = AutoModelForSequenceClassification.from_pretrained(MODEL)
 #------------------------------------------------------------------
 
 
-logger = logging.getLogger("atlin_proc:utils")
+logger = logging.getLogger("maple_proc:utils")
 
 
 def load_articles(path: str) -> list:

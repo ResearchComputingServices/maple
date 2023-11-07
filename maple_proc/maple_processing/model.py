@@ -3,6 +3,7 @@ from maple_structures import Article
 from maple_interface import MapleAPI
 from maple_structures import Processed, ModelIteration, Model, Topic
 from bertopic import BERTopic
+from hdbscan import HDBSCAN
 import requests
 
 class MapleModel:
@@ -37,6 +38,10 @@ class MapleModel:
             if not hasattr(cls, fun):
                 raise TypeError('Missing required method %s', fun)
 
+    @classmethod
+    def create_model(cls, level: int):
+        raise NotImplementedError('create_model method not implemented.')
+
 
 class MapleBert(MapleModel, BERTopic):
     def __init__(self, *args, **kwargs) -> None:
@@ -46,9 +51,26 @@ class MapleBert(MapleModel, BERTopic):
         self.name = 'BERTopic'
         self.status = 'created'
         self.level = 1
+    
+    @classmethod
+    def create_model(cls, level: int):
+        dbscan_kwargs = dict(
+            metric = 'euclidean',
+            cluster_selection_method = 'eom',
+            prediction_data = True,
+        )
         
-
-
+        if level == 1:
+            dbscan_kwargs['min_cluster_size'] = 150
+        elif level == 2:
+            dbscan_kwargs['min_cluster_size'] = 50
+        elif level == 3:
+            dbscan_kwargs['min_cluster_size'] = 10
+        
+        hdbscan_model = HDBSCAN(**dbscan_kwargs)
+        
+        return cls(hdbscan_model=hdbscan_model)
+        
 class MapleProcessing:
     def __init__(
         self, *,
@@ -71,7 +93,7 @@ class MapleProcessing:
         return [
             self.model_level1,
             self.model_level2,
-            self.model_level3
+            self.model_level3,
         ]
         
     def _create_models(self, model: MapleModel):
@@ -79,8 +101,11 @@ class MapleProcessing:
             modelname = f'model_level{level}'
             self.logger.debug('Creating model %s of type %s',
                               modelname, type(model))
-            maple_model = model()
+            maple_model = model.create_model(level=level)
             maple_model.level = level
+            if level == 1:
+                self._model_iteration.type = maple_model.type
+                self._model_iteration.name = maple_model.name
             setattr(self, modelname, maple_model)
             self._model_iteration.add_model_level(modelname, maple_model.model_structure)
         
@@ -157,12 +182,24 @@ class MapleProcessing:
                 self._create_models(model)
                 
                 self._model_iteration.article_trained = len(self._training_data)
-                self._model_iteration.type = model_level1.type
                 
                 
                 
+                
+class One:
+    def __init__(self) -> None:
+        print('One')
 
+class Two:
+    def __init__(self) -> None:
+        print('Two')
 
+class Three(One, Two):
+    def __init__(self) -> None:
+        super(Three, self).__init__()
+        print('Three')
+
+three = Three()
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
@@ -177,7 +214,8 @@ if __name__ == '__main__':
         hours=TRAINING_HOURS,
         models=[
             # MapleModel,
-            MapleBert
+            MapleBert,
+            # MapleLDA,
         ])
     maple_proc.run(run_once=True)
     pass

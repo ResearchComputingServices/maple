@@ -270,12 +270,10 @@ class ModelIteration(Base):
                     out['model_level3'] = self.model_level3.to_dict(
                         include_topic=include_topic)
         return out
-
-    @staticmethod
-    def from_dict(data: dict):
-        out = super().from_dict(data)
-        extra = dict(metadata={})
-        out.update(extra)
+    
+    @classmethod
+    def from_dict(cls, data: dict):
+        out = super()._from_dict(cls, data)
         return out
 
     def add_model_level(self, level: str,  model: Model):
