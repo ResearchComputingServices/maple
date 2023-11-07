@@ -5,6 +5,7 @@ import logging
 from maple_structures import Article
 from maple_structures import Topic
 from maple_structures import Model
+from maple_structures import ModelIteration
 
 logger = logging.getLogger("MapleAPI")
 
@@ -77,6 +78,15 @@ class MapleAPI:
             url = f"{self.baseurl}/{path}"
             response = requests.get(
                 url=url, headers=headers, params=params, timeout=timeout)
+        except Exception as exc:
+            logger.error(exc)
+        return response
+
+    def _delete(self, path: str, uuid: str, timeout=10):
+        response = requests.Response()
+        try:
+            url = f"{self.baseurl}/{path}/{uuid}"
+            response = requests.delete(url=url, timeout=timeout)
         except Exception as exc:
             logger.error(exc)
         return response
@@ -206,9 +216,11 @@ class MapleAPI:
                     return response
         return response
 
-    def model_post(self, model: Model):
+    def model_post(self, model: Model, include_topic: bool = False):
         "Posts a model in the database."
-        response = self._post("model", params=None, body=model.to_dict())
+
+        response = self._post("model", params=None,
+                              body=model.to_dict(include_topic=include_topic))
 
         if response.status_code is not None:
             if response.status_code != 201:
@@ -251,3 +263,64 @@ class MapleAPI:
                 except:
                     return response
         return response
+
+    def model_delete(self, uuid: str):
+        response = self._delete(path="model", uuid=uuid)
+        if response.status_code is not None:
+            if response.status_code == 200:
+                try:
+                    return Model.from_dict(response.json())
+                except:
+                    return response
+        return response
+
+    def model_iteration_post(self, model_iteration: ModelIteration, include_model=True, include_topic=True):
+        "Posts a model iteration in the database."
+        response = self._post("model-iteration", params=None,
+                              body=model_iteration.to_dict(include_model=include_model, include_topic=include_topic))
+
+        if response.status_code is not None:
+            if response.status_code != 201:
+                return response
+            try:
+                return ModelIteration.from_dict(response.json())
+            except request_exc.ConnectionError as exc:
+                logger.error("No connection to backend server. %s", exc)
+            except Exception as exc:
+                if self._suppress_errors:
+                    return None
+                else:
+                    raise exc
+        else:
+            if not self._suppress_errors:
+                raise ConnectionError()
+            return {}
+
+    def model_iteration_get(self):
+        response = self._get("model-iteration")
+        if response.status_code != 200:
+            return response
+        else:
+            try:
+                model_iterations_json = response.json()
+                ret = []
+                for model_iteration_json in model_iterations_json:
+                    ret.append(ModelIteration.from_dict(model_iteration_json))
+                return ret
+            except Exception as exc:
+                logger.error(exc)
+                return []
+
+    def model_iteration_put(self, model_iteration: ModelIteration) -> ModelIteration:
+        response = self._put("model-iteration", body=model_iteration.to_dict())
+        if response.status_code is not None:
+            if response.status_code == 200:
+                try:
+                    return ModelIteration.from_dict(response.json())
+                except:
+                    return response
+        return response
+
+    def model_iteration_delete(self, uuid: str):
+        response = self._delete(path="model-iteration", uuid=uuid)
+        return response.status_code
