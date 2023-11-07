@@ -281,9 +281,10 @@ class ModelIteration(Base):
         return out
 
     def add_model_level(self, level: str,  model: Model):
-        if getattr(self, level, None) is None:
-            setattr(self, level, model)
-        # getattr(self, level).append(model)
+        valid_levels = [f'model_level{i}' for i in range(1,4)]
+        if level not in valid_levels:
+            raise ValueError('Invalid level: %s. Valid levels are: %s', level, valid_levels)
+        setattr(self, level, model)
 
 
 class Processed(Base):
