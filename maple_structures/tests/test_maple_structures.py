@@ -9,27 +9,22 @@ logger = logging.getLogger('test_maple_tructures')
 logging.basicConfig(level=logging.DEBUG)
                            
 class TestTopic(unittest.TestCase):
-    def setup_topic(self):
-        logger.debug('we are in setup_topic')
+    
+    def setUp(self) -> None:
         self.name = 'Topic1'
         self.dot_summary = [
             'topic 1 is awesome', 
             'Completely related to something.']
         self.topic = Topic(name=self.name, dot_summary=self.dot_summary)
-    
-    def setUp(self) -> None:
-        self.setup_topic()
-    
-    def tearDown(self) -> None:
-        self.setup_topic()
-        
+
     def test_topic_creation(self):
+        logger.debug('test topic creation')
         self.assertTrue(isinstance(self.topic, Topic))
         self.assertEqual(self.name, self.topic.name)
         self.assertEqual(self.dot_summary, self.topic.dot_summary)
     
     def test_topic_to_dict(self):
-        logger.debug('Testing topic.to_dict()')
+        logger.debug('test topic.to_dict()')
         logger.debug(self.topic.to_dict())
         true_dict = dict(name=self.name, dot_summary=self.dot_summary)
         self.assertEqual(self.topic.to_dict(), true_dict)
@@ -37,9 +32,20 @@ class TestTopic(unittest.TestCase):
         self.topic.uuid = true_dict['uuid']
         self.assertEqual(self.topic.to_dict(), true_dict)
     
+    def test_topic_from_dict(self):
+        true_dict = dict(
+            name = self.name,
+            dot_summary = self.dot_summary,
+            uuid = str(uuid()),
+        )
+        topic = Topic.from_dict(true_dict)
+        for attribute in ['name','dot_summary', 'uuid']:
+            self.assertEqual(getattr(topic, attribute), true_dict[attribute])
+            
 
 class TestModel(unittest.TestCase):
-    def setup_model(self):
+        
+    def setUp(self) -> None:
         N_TOPICS = 5
         self.topic_names = [f'topic{i}' for i in range(N_TOPICS)]
         self.topic_dot_summary= [[f'dot summary number 1', f'dot summary number 2'] for i in range(N_TOPICS)]
@@ -49,12 +55,6 @@ class TestModel(unittest.TestCase):
         for topic in self.topics:
             self.model1.add_topic(topic)
         self.model2 = copy.copy(self.model1)
-        
-    def setUp(self) -> None:
-        self.setup_model()
-        
-    def tearDown(self) -> None:
-        self.setup_model()
     
     def test_model_equality(self):
         logger.debug('Testing model.to_dict()')
@@ -69,7 +69,8 @@ class TestModel(unittest.TestCase):
         self.assertTrue(self.topics[0] in self.model1.topic)
     
 class TestModelIteration(unittest.TestCase):
-    def setup_model_iteration(self):
+
+    def setUp(self) -> None:
         self.model_iteration_name = 'iteration1'
         self.model_iteration_type = 'bert'
         self.model_iteration_article_trained = 2000
@@ -89,12 +90,6 @@ class TestModelIteration(unittest.TestCase):
                         name=f'topic_{level}_{topic_i}',
                         dot_summary=[f'dot summary {i}' for i in range(3)]))
             self.model_iteration.add_model_level(model_var, model)
-    
-    def setUp(self) -> None:
-        self.setup_model_iteration()
-    
-    def tearDown(self) -> None:
-        self.setup_model_iteration()
     
     def test_fields(self) -> None:
         self.assertEqual(self.model_iteration_name, self.model_iteration.name)
