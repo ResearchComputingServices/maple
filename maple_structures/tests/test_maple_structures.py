@@ -173,8 +173,9 @@ class TestProcessed(unittest.TestCase):
         true_dict = {'article': {'uuid': 'dc17f1e7-30d6-48af-b8b2-ef952d9a4658'}, 'modelIteration': {'uuid': '3980db2b-4469-4c93-adbf-102e415e074e'}, 'topic_level1': {'uuid': '5d37bdd4-02db-41ea-bed0-64e37397ab82'},
                      'topic_level2': {'uuid': '2274726c-a84f-4dfa-84b0-8497c635826c'}, 'topic_level3': {'uuid': 'eb512160-e06e-4049-b8ff-b425e5de9c31'}, 'topic_level1_prob': 0.54, 'topic_level2_prob': 0.45, 'topic_level3_prob': 0.33}
         processed = Processed.from_dict(true_dict)
-        self.assertEqual(true_dict, processed.to_dict())
 
+        self.assertEqual(true_dict, processed.to_dict())
+        
 
 if __name__ == '__main__':
     unittest.main()
