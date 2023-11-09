@@ -172,7 +172,7 @@ class MapleAPI:
 
     def topic_post(self, topic: Topic):
         "Posts a topic in the database."
-        response = self._post("topic", params=None, body=topic.to_dict())
+        response = self._post("topic", params=None, body=topic.to_dict(include_model=True))
 
         if response.status_code is not None:
             if response.status_code != 201:

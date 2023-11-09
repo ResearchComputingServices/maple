@@ -113,6 +113,7 @@ class Topic(Base):
         Property('name', type=str, default=None),
         Property('keyword', type=list, default=None),
         Property('label', type=str, default=None),
+        Property('index', type=int, default = None),
         Property('dot_summary', type=list,
                  default=None, secondary_type=str),
         Property('prevalence', type=float, default=None),
@@ -126,6 +127,7 @@ class Topic(Base):
                  name: str = None,
                  keyword: [str] = None,
                  label: str = None,
+                 index: int = None,
                  dot_summary: [str] = None,
                  prevalence: float = None,
                  center: [float] = None,
@@ -136,7 +138,7 @@ class Topic(Base):
             Property('model', type=globals()['Model'], default=None))
         loc = locals()
         super().__init__()
-        for var in ['name', 'keyword', 'label', 'dot_summary', 'prevalence', 'center', 'wordcloud', 'chart', 'model']:
+        for var in ['name', 'keyword', 'label', 'index', 'dot_summary', 'prevalence', 'center', 'wordcloud', 'chart', 'model']:
             if loc[var] is not None:
                 setattr(self, var, loc[var])
 
