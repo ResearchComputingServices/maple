@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import List
 from abc import ABC, abstractmethod
 import json
 import pprint
@@ -270,16 +271,17 @@ class ModelIteration(Base):
                     out['model_level3'] = self.model_level3.to_dict(
                         include_topic=include_topic)
         return out
-    
+
     @classmethod
     def from_dict(cls, data: dict):
         out = super()._from_dict(cls, data)
         return out
 
     def add_model_level(self, level: str,  model: Model):
-        valid_levels = [f'model_level{i}' for i in range(1,4)]
+        valid_levels = [f'model_level{i}' for i in range(1, 4)]
         if level not in valid_levels:
-            raise ValueError('Invalid level: %s. Valid levels are: %s', level, valid_levels)
+            raise ValueError(
+                'Invalid level: %s. Valid levels are: %s', level, valid_levels)
         setattr(self, level, model)
 
 
@@ -297,9 +299,9 @@ class Processed(Base):
         Property('topic_level2_prob', type=float, default=None),
         Property('topic_level3', type=Topic, default=None),
         Property('topic_level3_prob', type=float, default=None),
-        Property('position', type=list[float], default=None),
+        Property('position', type=List[float], default=None),
     ]
-    
+
     def __init__(
         self,
         article: Article = None,
@@ -311,104 +313,136 @@ class Processed(Base):
         topic_level3: Topic = None,
         topic_level3_prob: float = None,
         position: list[float] = None
-        ) -> None:
+    ) -> None:
         loc = locals()
         super().__init__()
         for var in [
-            'article', 
-            'modelIteration', 
-            'topic_level1', 
-            'topic_level1_prob', 
-            'topic_level2', 
-            'topic_level2_prob', 
-            'topic_level3', 
-            'topic_level3_prob', 
-            'position']:
+            'article',
+            'modelIteration',
+            'topic_level1',
+            'topic_level1_prob',
+            'topic_level2',
+            'topic_level2_prob',
+            'topic_level3',
+            'topic_level3_prob',
+                'position']:
             if loc[var] is not None:
                 setattr(self, var, loc[var])
 
+    @property
+    def properties(self):
+        return self._properties
+
     def to_dict(self):
-        return super().to_dict()
-    
+        # return super().to_dict()
+        out = dict()
+        for var in ['article', 'modelIteration', 'topic_level1', 'topic_level2', 'topic_level3']:
+            var_obj = getattr(self, var, None)
+            if not var_obj:
+                raise AttributeError("missing attribute %s", var)
+            if not getattr(var_obj, 'uuid', None):
+                raise AttributeError("%s is lacking uuid", var)
+            out[var] = dict(uuid=getattr(self, var).uuid)
+
+        for level in range(1, 4):
+            var_name = f'topic_level{level}_prob'
+            var = getattr(self, var_name, None)
+            if var:
+                out[var_name] = var
+        return out
+
     @classmethod
     def from_dict(cls, data: dict):
         return super()._from_dict(cls, data)
 
-    
+
 if __name__ == "__main__":
-    topic = Topic(name='Topic1', dot_summary=[
-                  'topic 1 is awesome', 'Completely related to something.'])
-    print('Topic:')
-    print(json.dumps(topic.to_dict(), indent=2))
+    old_testing = False
+    if old_testing:
+        topic = Topic(name='Topic1', dot_summary=[
+            'topic 1 is awesome', 'Completely related to something.'])
+        print('Topic:')
+        print(json.dumps(topic.to_dict(), indent=2))
 
-    topic2 = Topic.from_dict(topic.to_dict())
-    print('Topic from_dict:')
-    print(topic2.to_dict())
+        topic2 = Topic.from_dict(topic.to_dict())
+        print('Topic from_dict:')
+        print(topic2.to_dict())
 
-    model = Model(type='bert', level=1)
+        model = Model(type='bert', level=1)
 
-    print("Topic to_dict with model")
-    topic2.model = model
-    print(topic2.to_dict(include_model=True))
+        print("Topic to_dict with model")
+        topic2.model = model
+        print(topic2.to_dict(include_model=True))
 
-    model.add_topic(topic)
-    model.add_topic(topic2)
+        model.add_topic(topic)
+        model.add_topic(topic2)
 
-    print("Model to_dict with topics:")
-    print(model.to_dict(include_topic=True))
-    model2 = Model.from_dict(model.to_dict(include_topic=True))
+        print("Model to_dict with topics:")
+        print(model.to_dict(include_topic=True))
+        model2 = Model.from_dict(model.to_dict(include_topic=True))
 
-    print("model2 from_dict")
-    print(model2.to_dict(include_topic=True))
+        print("model2 from_dict")
+        print(model2.to_dict(include_topic=True))
 
-    print("================================================ ")
-    model1 = Model(type='bert', level=1)
-    topic1 = Topic(name='GazaConflict', dot_summary=[
-        'Conflict in Gaza', 'War crisis'])
-    topic2 = Topic(name='HousingCrisis', dot_summary=[
-        'Canda wide housing crisis', 'Rental and buying properties'])
+        print("================================================ ")
+        model1 = Model(type='bert', level=1)
+        topic1 = Topic(name='GazaConflict', dot_summary=[
+            'Conflict in Gaza', 'War crisis'])
+        topic2 = Topic(name='HousingCrisis', dot_summary=[
+            'Canda wide housing crisis', 'Rental and buying properties'])
 
-    topic1.model = model1
-    topic2.model = model1
-    model1.add_topic(topic1)
-    model1.add_topic(topic2)
-    print(model1.to_dict(include_topic=True))
+        topic1.model = model1
+        topic2.model = model1
+        model1.add_topic(topic1)
+        model1.add_topic(topic2)
+        print(model1.to_dict(include_topic=True))
 
-    model2 = Model(type='stm', level=1)
-    topic3 = Topic(name='GazaConflict', dot_summary=[
-        'Conflict in Gaza', 'War crisis'])
-    topic4 = Topic(name='HousingCrisis', dot_summary=[
-        'Canda wide housing crisis', 'Rental and buying properties'])
+        model2 = Model(type='stm', level=1)
+        topic3 = Topic(name='GazaConflict', dot_summary=[
+            'Conflict in Gaza', 'War crisis'])
+        topic4 = Topic(name='HousingCrisis', dot_summary=[
+            'Canda wide housing crisis', 'Rental and buying properties'])
 
-    topic3.model = model2
-    topic4.model = model2
-    model2.add_topic(topic3)
-    model2.add_topic(topic4)
+        topic3.model = model2
+        topic4.model = model2
+        model2.add_topic(topic3)
+        model2.add_topic(topic4)
 
-    print("================================================ ")
-    # model_it1 = ModelIteration(name='it1', type='bert', model_level1=model1,
-    #                           article_trained=2000, article_classified=1885)
+        print("================================================ ")
+        # model_it1 = ModelIteration(name='it1', type='bert', model_level1=model1,
+        #                           article_trained=2000, article_classified=1885)
 
-    # model_it1 = ModelIteration(name='it1', type='bert', model_level1=model1,
-    #                           model_level2=model2, article_trained=2000, article_classified=1885)
+        # model_it1 = ModelIteration(name='it1', type='bert', model_level1=model1,
+        #                           model_level2=model2, article_trained=2000, article_classified=1885)
 
-    # model_it1 = ModelIteration(name='it1', type='bert', model_level1=model1,
-    #                           article_trained=2000, article_classified=1885)
+        # model_it1 = ModelIteration(name='it1', type='bert', model_level1=model1,
+        #                           article_trained=2000, article_classified=1885)
 
-    model_it1 = ModelIteration(
+        model_it1 = ModelIteration(
+            name='it1', type='bert', article_trained=2000, article_classified=1885)
+
+        print(model_it1.to_dict())
+
+        print("======================================================")
+        model_it1.add_model_level('model_level1', model1)
+        model_it1.add_model_level('model_level2', model2)
+        model_it1.add_model_level('model_level3', model1)
+
+        # print(model_it1.to_dict(include_model=True, include_topic=True))
+        pprint.pprint(model_it1.to_dict())
+
+        # print("..............................................")
+        # print(model_it1.to_dict_simple())
+
+    t_article = Article(url="https://www.cbc.ca/news/canada/nova-scotia/group-neighbours-helping-homeless-encampment-1.7019732",
+                        title="Neighbours help homeless",
+                        content="Newly formed Gated Community Association started as a Facebook group and is now a registered non-profit.",
+                        )
+    t_topic1 = Topic(name='Topic1', dot_summary=[
+                     'topic 1 is awesome', 'Completely related to something.'])
+    t_model1 = Model(type='bert', level=1)
+    t_topic1.model = t_model1
+    t_model1.add_topic(t_topic1)
+    t_model_it1 = ModelIteration(
         name='it1', type='bert', article_trained=2000, article_classified=1885)
-
-    print(model_it1.to_dict())
-
-    print("======================================================")
-    model_it1.add_model_level('model_level1', model1)
-    model_it1.add_model_level('model_level2', model2)
-    model_it1.add_model_level('model_level3', model1)
-
-    # print(model_it1.to_dict(include_model=True, include_topic=True))
-    pprint.pprint(model_it1.to_dict())
-
-    # print("..............................................")
-    # print(model_it1.to_dict_simple())
-
-    pass
+    t_model_it1.add_model_level('model_level1', t_model1)
