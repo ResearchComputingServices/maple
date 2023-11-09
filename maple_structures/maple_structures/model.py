@@ -349,6 +349,12 @@ class Processed(Base):
             var = getattr(self, var_name, None)
             if var:
                 out[var_name] = var
+
+        var_name = "position"
+        var = getattr(self, var_name, None)
+        if var:
+            out[var_name] = var
+
         return out
 
     @classmethod

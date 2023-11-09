@@ -6,6 +6,7 @@ from maple_structures import Article
 from maple_structures import Topic
 from maple_structures import Model
 from maple_structures import ModelIteration
+from maple_structures import Processed
 
 logger = logging.getLogger("MapleAPI")
 
@@ -323,4 +324,55 @@ class MapleAPI:
 
     def model_iteration_delete(self, uuid: str):
         response = self._delete(path="model-iteration", uuid=uuid)
+        return response.status_code
+
+    def processed_post(self, processed: Processed) -> Processed:
+        "Posts a processed in the database."
+        response = self._post("processed", params=None,
+                              body=processed.to_dict())
+
+        if response.status_code is not None:
+            if response.status_code != 201:
+                return response
+            try:
+                return Processed.from_dict(response.json())
+            except request_exc.ConnectionError as exc:
+                logger.error("No connection to backend server. %s", exc)
+            except Exception as exc:
+                if self._suppress_errors:
+                    return None
+                else:
+                    raise exc
+        else:
+            if not self._suppress_errors:
+                raise ConnectionError()
+            return {}
+
+    def processed_get(self):
+        response = self._get("processed")
+        if response.status_code != 200:
+            return response
+        else:
+            try:
+                processed_json = response.json()
+                ret = []
+                for proc_json in processed_json:
+                    ret.append(Processed.from_dict(proc_json))
+                return ret
+            except Exception as exc:
+                logger.error(exc)
+                return []
+
+    def processed_put(self, processed: Processed) -> Processed:
+        response = self._put("processed", body=processed.to_dict())
+        if response.status_code is not None:
+            if response.status_code == 200:
+                try:
+                    return Processed.from_dict(response.json())
+                except:
+                    return response
+        return response
+
+    def processed_delete(self, uuid: str):
+        response = self._delete(path="processed", uuid=uuid)
         return response.status_code
