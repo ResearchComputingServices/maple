@@ -121,6 +121,8 @@ class MapleBert(MapleModel, BERTopic):
             )
         
 class MapleProcessing:
+    DEBUG_LIMIT_PROCESS_COUNT = 600
+    
     def __init__(
         self, *,
         maple: MapleAPI,
@@ -128,6 +130,7 @@ class MapleProcessing:
         hours: float = None,
         max_hours: float = 30*24,
         article_train_min_size: int = 400,
+        debug_limits: bool = False,
         **kwargs,
     ):
         self.logger = logging.getLogger('MapleProcessing')
@@ -136,6 +139,7 @@ class MapleProcessing:
         self._hours = hours
         self._max_hours = max_hours
         self._article_train_min_size = article_train_min_size
+        self._debug_limits = debug_limits
     
     @property
     def models(self):
@@ -170,16 +174,61 @@ class MapleProcessing:
                         
 
     def _classify_all_articles(self):
-        self._model_iteration.article_classified = 0 
+        self._model_iteration.article_classified = 0
         for articles in self.maple_api.article_iterator():
+            time_start = timeit.default_timer()
+            
+            # remove articles without chat_summaries.
+            [articles.remove(article) for article in articles if not hasattr(article, 'chat_summary')]
+            
+            # extract summaries from articles
+            summaries = [article.chat_summary for article in articles]
+            
+            #create processed objects
+            processed_list = []
             for article in articles:
-                if hasattr(article, 'chat_summary'):
+                processed_list.append(
+                    Processed(
+                        article = article,
+                        modelIteration = self._model_iteration,
+                        position = [0,0] #TODO compute position using umap
+                    )
+                )
+            
+            # classify on all levels, then set the processed filds
+            for level in range(1,4):
+                self.logger.debug('Classifying %d articles using model %s', len(articles), f'model_level{level}')
+                model = getattr(self, f'model_level{level}')
+                topic_indexes, probabilities = model.transform(summaries)
+                for processed, topic_index, probs in zip(processed_list, topic_indexes, probabilities):
+                    topic = [topic for topic in model.model_structure.topic if topic.index == topic_index][0]
+                    setattr(processed, f'topic_level{level}', topic)
+                    setattr(processed, f'topic_level{level}_prob', probs)
+            
+            # send all processed objects to backend
+            self.logger.debug('Posting %d processed on backend.', len(processed_list))
+            for processed in processed_list:
+                processed_response = self.maple_api.processed_post(processed)
+                if not isinstance(processed_response, Processed):
+                    self.logger.warning(f'Failed to post processed for article %s. %s', article.url, processed_response)
+                else:
                     self._model_iteration.article_classified += 1
-                    processed = Processed()
-                    for model in [self.model_level1, self.model_level2, self.model_level3]:
-                        self.model_structure
-                        
+                    if (self._model_iteration.article_classified % 10) == 0:
+                        try:
+                            self._update_model_iteration()
+                        except TypeError as exc:
+                            self.logger.error('Failed to update model iteration. %s', exc)
+        
+            self.logger.info('Classification cycle for %d articles was %f seconds', len(articles), timeit.default_timer()-time_start)
+            
+            if self._debug_limits:
+                if self._model_iteration.article_classified > self.DEBUG_LIMIT_PROCESS_COUNT:
+                    break
+            
+        for level in range(1,4):
+            getattr(self._model_iteration, f'model_level{level}').status = 'complete'
         self._update_model_iteration()
+        
 
     def _fetch_training_data(self):
         # Fetch data until minimum number of articles are reached.
@@ -316,6 +365,7 @@ if __name__ == '__main__':
             # MapleModel,
             MapleBert,
             # MapleLDA,
-        ])
+        ],
+        debug_limits=True)
     maple_proc.run(run_once=True)
     pass

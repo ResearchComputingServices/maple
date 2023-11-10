@@ -327,7 +327,7 @@ class Processed(Base):
             'topic_level2_prob',
             'topic_level3',
             'topic_level3_prob',
-                'position']:
+            'position']:
             if loc[var] is not None:
                 setattr(self, var, loc[var])
 
