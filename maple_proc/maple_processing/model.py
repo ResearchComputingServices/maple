@@ -9,6 +9,7 @@ from bertopic.representation import KeyBERTInspired
 from umap import UMAP
 import requests
 import timeit
+from sentence_transformers import SentenceTransformer
 
 logging.getLogger('numba').setLevel(logging.WARNING)
 
@@ -148,7 +149,22 @@ class MapleProcessing:
             self.model_level2,
             self.model_level3,
         ]
-        
+    
+    def _maple_embed_documents(self, documents: list[str]):
+        if not hasattr(self, '_sentence_transformer'):
+            self._sentence_transformer = SentenceTransformer('all-MiniLM-L6-v2')
+        return self._sentence_transformer.encode(documents)
+    
+    def _detect_positions(self, documents: list[str], fit: bool = False):
+        embeddings = self._maple_embed_documents(documents)
+        if not hasattr(self, '_umap_model'):
+            self._umap_model = UMAP(n_neighbors=10, n_components=2, min_dist=0.0,
+                  metric='cosine')
+        if fit:
+            self._umap_model.fit(embeddings)
+        positions = self._umap_model.transform(embeddings)
+        return positions
+    
     def _create_models(self, model: MapleModel, *args, **kwargs):
         for level in range(1,4):
             modelname = f'model_level{level}'
@@ -189,16 +205,16 @@ class MapleProcessing:
             summaries = [article.chat_summary for article in articles]
             
             #TODO compute position using umap
-            
+            positions = self._detect_positions(summaries)
             
             #create processed objects
             processed_list = []
-            for article in articles:
+            for article, position in zip(articles, positions.tolist()):
                 processed_list.append(
                     Processed(
                         article = article,
                         modelIteration = self._model_iteration,
-                        position = [0,0] #TODO compute position using umap
+                        position = position #TODO compute position using umap
                     )
                 )
             
@@ -246,7 +262,7 @@ class MapleProcessing:
             getattr(self._model_iteration, f'model_level{level}').status = 'complete'
         self._update_model_iteration()
         
-    def _classify_articles(self, model: MapleModel, articles: list[Article], create_processed: bool = True):
+    def _classify_articles(self, articles: list[Article], create_processed: bool = True):
         pass
     
     def _fetch_training_data(self):
@@ -362,6 +378,10 @@ class MapleProcessing:
             except ValueError as exc:
                 self.logger.info('Could not retrieve enough data. %s', exc)
                 continue
+            
+            # self._create_sentence_transformer()
+            # embeddings = self._maple_embed_documents(summaries)
+            self._detect_positions(summaries, fit=True)
             
             # create a model iteration and models
             for model in self._models:
