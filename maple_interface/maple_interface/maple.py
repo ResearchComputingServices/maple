@@ -326,6 +326,21 @@ class MapleAPI:
         response = self._delete(path="model-iteration", uuid=uuid)
         return response.status_code
 
+    def processed_post_many(self, processed: list[Processed]):
+        response = self._post(
+            "processed/many", 
+            params=None,
+            body=[proc.to_dict() for proc in processed])
+        
+        if response:
+            if response.status_code != 201:
+                return response
+            else:
+                out = []
+                for processed_ret in response.json():
+                    out.append(Processed.from_dict(processed_ret))
+                return out
+        
     def processed_post(self, processed: Processed) -> Processed:
         "Posts a processed in the database."
         response = self._post("processed", params=None,

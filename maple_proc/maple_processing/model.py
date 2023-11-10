@@ -175,6 +175,10 @@ class MapleProcessing:
 
     def _classify_all_articles(self):
         self._model_iteration.article_classified = 0
+        for level in range(1,4):
+            getattr(self._model_iteration, f'model_level{level}').status = 'classifying'
+        self._update_model_iteration()
+        
         for articles in self.maple_api.article_iterator():
             time_start = timeit.default_timer()
             
@@ -183,6 +187,9 @@ class MapleProcessing:
             
             # extract summaries from articles
             summaries = [article.chat_summary for article in articles]
+            
+            #TODO compute position using umap
+            
             
             #create processed objects
             processed_list = []
@@ -207,29 +214,41 @@ class MapleProcessing:
             
             # send all processed objects to backend
             self.logger.debug('Posting %d processed on backend.', len(processed_list))
-            for processed in processed_list:
-                processed_response = self.maple_api.processed_post(processed)
-                if not isinstance(processed_response, Processed):
-                    self.logger.warning(f'Failed to post processed for article %s. %s', article.url, processed_response)
+            try:
+                response = self.maple_api.processed_post_many(processed_list)
+                if isinstance(response, requests.Response):
+                    self.logger.warning('Failed to post batch of Processed. Trying one at a time.')
+                    for processed in processed_list:
+                        processed_response = self.maple_api.processed_post(processed)
+                        if not isinstance(processed_response, Processed):
+                            self.logger.warning(f'Failed to post processed for article %s. %s', article.url, processed_response)
+                        else:
+                            self._model_iteration.article_classified += 1
+                            if (self._model_iteration.article_classified % 10) == 0:
+                                try:
+                                    self._update_model_iteration()
+                                except TypeError as exc:
+                                    self.logger.error('Failed to update model iteration. %s', exc)
                 else:
-                    self._model_iteration.article_classified += 1
-                    if (self._model_iteration.article_classified % 10) == 0:
-                        try:
-                            self._update_model_iteration()
-                        except TypeError as exc:
-                            self.logger.error('Failed to update model iteration. %s', exc)
+                    # returned a list...
+                    self._model_iteration.article_classified += len(response)
+                    self._update_model_iteration()
+            except Exception as exc:
+                self.logger.error('Failed to post processed. %s', exc)
         
             self.logger.info('Classification cycle for %d articles was %f seconds', len(articles), timeit.default_timer()-time_start)
             
             if self._debug_limits:
-                if self._model_iteration.article_classified > self.DEBUG_LIMIT_PROCESS_COUNT:
+                if self._model_iteration.article_classified >= self.DEBUG_LIMIT_PROCESS_COUNT:
                     break
             
         for level in range(1,4):
             getattr(self._model_iteration, f'model_level{level}').status = 'complete'
         self._update_model_iteration()
         
-
+    def _classify_articles(self, model: MapleModel, articles: list[Article], create_processed: bool = True):
+        pass
+    
     def _fetch_training_data(self):
         # Fetch data until minimum number of articles are reached.
         article_hours = self._hours
@@ -301,6 +320,13 @@ class MapleProcessing:
                 
             
             #TODO save model
+            # /data/ModelIteration/<modelIterationUUID>/models/<model_level1UUID>/model.fmt
+            # /data/ModelIteration/<modelIterationUUID>/models/<model_level2UUID>/model.fmt
+            # /data/ModelIteration/<modelIterationUUID>/models/<model_level3UUID>/model.fmt
+            # /data/ModelIteration/<modelIterationUUID>/modelIteration.json
+            # /data/ModelIteration/<modelIterationUUID>/processed.json
+            # /data/ModelIteration/<modelIterationUUID>/articles.json
+            
             #TODO send model to backend
             
         # update model iteration on backend
@@ -367,5 +393,6 @@ if __name__ == '__main__':
             # MapleLDA,
         ],
         debug_limits=True)
+    maple_proc.DEBUG_LIMIT_PROCESS_COUNT = 200
     maple_proc.run(run_once=True)
     pass
