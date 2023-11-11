@@ -363,13 +363,20 @@ class MapleAPI:
                 raise ConnectionError()
             return {}
 
-    def processed_get(self):
-        response = self._get("processed")
+    def processed_get(self, model_iteration_uuid: str, limit: int = None, skip: int= None , as_json: bool = False ):
+        params = dict()
+        params['modelIteration'] = model_iteration_uuid
+        params['limit'] = limit
+        params['skip'] = skip
+        
+        response = self._get("processed", params = params)
         if response.status_code != 200:
             return response
         else:
             try:
                 processed_json = response.json()
+                if as_json:
+                    return processed_json
                 ret = []
                 for proc_json in processed_json:
                     ret.append(Processed.from_dict(proc_json))
