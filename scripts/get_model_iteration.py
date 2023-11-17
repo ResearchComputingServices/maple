@@ -73,24 +73,27 @@ def download_data(maple: MapleAPI, model_iteration_uuid: str, path: str):
     with open(os.path.join(model_iteration_path, 'processed.json'), 'w') as file:
         json.dump(processed, file, indent=2)
     
-    def article_in_processed(article, processed_list):
+    def article_in_processed(article, processed_list, remove: bool = True):
         for processed in processed_list:
             if article.uuid == processed['article']['uuid']:
+                if remove:
+                    processed_list.remove(processed)
                 return True
         return False
     
     articles_out = []
+    processed_copy = processed.copy()
     for articles in maple.article_iterator():
         for article in articles:  
-            if article_in_processed(article, processed):
+            if article_in_processed(article, processed_copy, True):
                 articles_out.append(article.to_dict())
     
     with open(os.path.join(model_iteration_path, 'article.json'), 'w') as file:
         json.dump(articles_out, file, indent=2)
 
 if __name__ == '__main__':
-    DATAPATH = 'data'
-    MODEL_ITERATION_UUID = '75782439-fa4c-479b-9428-6749a56364f1'
+    DATAPATH = 'data/modelIteration'
+    MODEL_ITERATION_UUID = '48111ee8-b2ee-49f5-bf75-e536febd1e9f'
     rcs.utils.configure_logging()
     maple_api = MapleAPI(authority = 'http://localhost:3000')
     download_data(maple=maple_api, model_iteration_uuid=MODEL_ITERATION_UUID, path=DATAPATH)

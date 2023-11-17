@@ -1,4 +1,5 @@
 import logging
+import os
 from maple_structures import Article
 from maple_interface import MapleAPI
 from maple_structures import Processed, ModelIteration, Model, Topic
@@ -15,14 +16,13 @@ logging.getLogger('numba').setLevel(logging.WARNING)
 
 class MapleModel:
     def __init__(self,
-                 *args,
                  model_type: str = None,
                  version: str = None,
                  name: str = None,
                  status: str = None,
                  level: int = None,
                  **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         existing_variables = []
         for var in ['type', 'version', 'name', 'status','level']:
             if hasattr(self, var):
@@ -66,9 +66,8 @@ class MapleModel:
 
 
 class MapleBert(MapleModel, BERTopic):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args,
-                         model_type = 'bert',
+    def __init__(self, **kwargs) -> None:
+        super().__init__(model_type = 'bert',
                          version = '1.0',
                          name = 'BERTopic',
                          status = 'created',
@@ -84,9 +83,9 @@ class MapleBert(MapleModel, BERTopic):
         )
         
         if level == 1:
-            dbscan_kwargs['min_cluster_size'] = 150 if training_size is None else int(training_size/5*0.6)
+            dbscan_kwargs['min_cluster_size'] = 150 if training_size is None else int(training_size/12*0.6)
         elif level == 2:
-            dbscan_kwargs['min_cluster_size'] = 50 if training_size is None else int(training_size/25*0.6)
+            dbscan_kwargs['min_cluster_size'] = 50 if training_size is None else int(training_size/35*0.6)
         elif level == 3:
             dbscan_kwargs['min_cluster_size'] = 10 if training_size is None else int(training_size/50*0.6)
         
@@ -195,14 +194,26 @@ class MapleProcessing:
             getattr(self._model_iteration, f'model_level{level}').status = 'classifying'
         self._update_model_iteration()
         
-        for articles in self.maple_api.article_iterator():
+        for articles_it in self.maple_api.article_iterator(limit=100, page=0):
             time_start = timeit.default_timer()
             
             # remove articles without chat_summaries.
-            [articles.remove(article) for article in articles if not hasattr(article, 'chat_summary')]
+            articles = []
+            for article in articles_it:
+                if hasattr(article, 'chat_summary'):
+                    articles.append(article)
             
+            if len(articles) == 0:
+                continue
+              
             # extract summaries from articles
-            summaries = [article.chat_summary for article in articles]
+            summaries=[]
+            for article in articles:
+                summary = getattr(article, 'chat_summary', None)
+                if not summary:
+                    self.logger.error('Missing chat_summary for article %s %s', article.uuid, article.url)
+                    raise ValueError(f'Missing chat_summary for article {article.uuid} {article.url}')
+                summaries.append(summary)
             
             #TODO compute position using umap
             positions = self._detect_positions(summaries)
@@ -246,13 +257,12 @@ class MapleProcessing:
                                 except TypeError as exc:
                                     self.logger.error('Failed to update model iteration. %s', exc)
                 else:
-                    # returned a list...
-                    self._model_iteration.article_classified += len(response)
+                    self._model_iteration.article_classified += len(processed_list)
                     self._update_model_iteration()
             except Exception as exc:
                 self.logger.error('Failed to post processed. %s', exc)
         
-            self.logger.info('Classification cycle for %d articles was %f seconds', len(articles), timeit.default_timer()-time_start)
+            self.logger.info('Classification cycle for %d articles was %f seconds. %d articles classified.', len(articles), timeit.default_timer()-time_start, self._model_iteration.article_classified)
             
             if self._debug_limits:
                 if self._model_iteration.article_classified >= self.DEBUG_LIMIT_PROCESS_COUNT:
@@ -336,6 +346,10 @@ class MapleProcessing:
                 
             
             #TODO save model
+            model_path = os.path.join('data', 'modelIteration',self._model_iteration.uuid, f'model_level{level}')
+            os.makedirs(model_path, exist_ok=True)
+            model.save(path=model_path, serialization="pytorch", save_ctfidf=True, save_embedding_model=model.embedding_model)
+            
             # /data/ModelIteration/<modelIterationUUID>/models/<model_level1UUID>/model.fmt
             # /data/ModelIteration/<modelIterationUUID>/models/<model_level2UUID>/model.fmt
             # /data/ModelIteration/<modelIterationUUID>/models/<model_level3UUID>/model.fmt
@@ -367,6 +381,7 @@ class MapleProcessing:
     def run(self, *, run_once: bool = False):
         run_count = 0
         while True:
+            iteration_time_start = timeit.default_timer()
             run_count += 1
             if run_once and run_count > 1:
                 break
@@ -394,7 +409,9 @@ class MapleProcessing:
                 self._train_models(documents=summaries)
                 
                 self._classify_all_articles()
-                
+            
+            iteration_time = timeit.default_timer()-iteration_time_start
+            self.logger.info('Iteration for %s ended in %.2f seconds', self._model_iteration.name, iteration_time)
                 
                 
 

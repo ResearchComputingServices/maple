@@ -336,10 +336,7 @@ class MapleAPI:
             if response.status_code != 201:
                 return response
             else:
-                out = []
-                for processed_ret in response.json():
-                    out.append(Processed.from_dict(processed_ret))
-                return out
+                return True
         
     def processed_post(self, processed: Processed) -> Processed:
         "Posts a processed in the database."

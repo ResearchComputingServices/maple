@@ -7,7 +7,7 @@ if __name__ == "__main__":
     logging.getLogger('urllib3').setLevel(logging.INFO)
 
     TRAINING_HOURS = 24
-    maple = MapleAPI(authority='http://localhost:3000')
+    maple = MapleAPI(authority='http://134.117.214.192:80')
     maple_proc = MapleProcessing(
         maple=maple,
         hours=TRAINING_HOURS,
