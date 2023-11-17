@@ -4,6 +4,7 @@ import logging
 import rcs
 import asyncio
 from aiohttp import web
+import requests
 import socketio
 import threading 
 import time
@@ -12,6 +13,7 @@ from maple_config import config as cfg
 from maple_interface import MapleAPI
 from maple_structures import Article
 from maple_processing.process import chat_summary
+from uuid import uuid4
 import os
 import sys
 
@@ -37,7 +39,10 @@ logger = logging.getLogger('chatgpt_process')
 rcs.utils.configure_logging(
     level=args.l,
     output_directory=LOG_FOLDER,
-    output_filename_prefix=LOG_PREFIX)
+    output_filename_prefix=LOG_PREFIX,
+    output_file_max_size_bytes=5e6,
+    n_log_files = 4,
+    use_postfix_hour = False)
 
 logging.getLogger('asyncio').setLevel(logging.WARNING)
 logger.debug("arguments: %s", args)
@@ -49,6 +54,10 @@ sio.attach(app)
 def update_article(maple, uuid):
     article_updated = True
     articles = maple.article_get(uuid=uuid)
+    if isinstance(articles, requests.Response):
+        logger.error('Failed to retrieve article')
+        logger.debug('Response %d %s', articles.status_code, articles)
+        return False
     if len(articles) > 0:
         if len(articles) != 1:
             logger.warning("should not have returned more than one article. uuid: %s, maple: %s, len %d", uuid, maple._authority, len(articles))
@@ -80,18 +89,48 @@ def update_article(maple, uuid):
                 
 class ChatProcess:
     _process_uuid = []
+    _process_generate_topic_name = []
     sleep_time_s = 1
     lock = threading.Lock()
     
     def __init__(self) -> None:
         self._maple = MapleAPI(f"http://{config['MAPLE_BACKEND_IP']}:{config['MAPLE_BACKEND_PORT']}")
         # self.__get_unprocessed_uuids()
+    
+    def generate_topic_name(self, keywords: list[str]):
+        topic_name_job = dict(
+            uuid = str(uuid4()),
+            keywords = keywords.copy()
+        )
+        with self.lock:
+            self._process_generate_topic_name.append(
+                topic_name_job
+            )
+        return topic_name_job['uuid']
+    
+    async def higher_priority_tasks(self):
+        logger.debug('Running higher priority tasks...')
+        #TODO generate dot summary for top n articles
+        #TODO generate best description of topic given n words
+        with self.lock:
+            topic_name_jobs = self._process_generate_topic_name.copy()
+        for topic_name_job in topic_name_jobs:
+            logger.debug('Processing topic name job %s', topic_name_job)
+            # on success...
+            with self.lock:
+                try:
+                    self._process_generate_topic_name.remove(topic_name_job)
+                except ValueError as exc:
+                    logger.error('Failed to remove topic name job. %s. %s ', topic_name_job, exc)
         
+    
     async def get_unprocessed_uuids(self):
+        """ Retrieves all unprocessed uuids for later processing.
+        """
         while True:
             logger.info('Retrieving unprocessed uuids')
             try:
-                for articles in self._maple.article_iterator():
+                for articles in self._maple.article_iterator(limit=1000):
                     for article in articles:
                         if not hasattr(article, 'chat_summary'):
                             with self.lock:
@@ -106,15 +145,24 @@ class ChatProcess:
     async def process(self):
         tstart = time.time()
         debug_time = tstart
+        loop = asyncio.get_event_loop()
         while True:
+            
+            await self.higher_priority_tasks()
+            
             if ((time.time() - debug_time) >= 60):
                 debug_time = time.time()
                 logger.debug('elapsed time: (%d)', time.time()-tstart)
-            for uiud_i, uuid in enumerate(self._process_uuid.copy()):
+            batch_of_uuids = self._process_uuid.copy()
+            for uiud_i, uuid in enumerate(batch_of_uuids):
+                # First run all higher priority tasks
+                await self.higher_priority_tasks()
                 if uiud_i == 0:
-                    logger.debug('Processing new batch of uuids')
-                logger.debug('Processing uuid %s', uuid)
-                if update_article(self._maple, uuid):
+                    logger.debug('Processing new batch of uuids (%d)', len(batch_of_uuids))
+                logger.debug('Processing uuid %s (%d/%d)', uuid, uiud_i+1, len(batch_of_uuids))
+                
+                updated_article = await loop.run_in_executor(None, update_article, self._maple, uuid)
+                if updated_article:
                     with self.lock:
                         self._process_uuid.remove(uuid)
                 #TODO go over bullet point summaries here...
@@ -150,6 +198,12 @@ async def new_article(sid, data):
     logger.debug('new article: %s, %s', data, sid)
     chatprocess.process_uuid = data
     logger.debug(chatprocess.process_uuid)
+
+@sio.event
+async def generate_topic_name(sid, data):
+    logger.debug('%s', data)
+    uuid = chatprocess.generate_topic_name(data)
+    return uuid
     
 if __name__ == "__main__":
     chatprocess.sleep_time_s = 1
