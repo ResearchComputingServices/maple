@@ -164,6 +164,9 @@ def main(args):
         level = args.l,
         output_directory='logs',
         output_filename_prefix='data_fetcher',
+        output_file_max_size_bytes=5e6,
+        n_log_files = 4,
+        use_postfix_hour = False
     )
     
     logger.debug("args: %s", args)
