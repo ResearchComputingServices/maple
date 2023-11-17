@@ -124,4 +124,18 @@ def chat_summary(content: str, api_key: str):
     )
     return completion.choices[0]['message']['content']
     
+def name_topic(keywords: list[str], api_key: str):
+    openai.api_key = api_key
     
+    content = ', '.join(keywords)
+    completion = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo-16k",
+        messages=[
+            {
+                "role":"user",
+                "content": f"generate at most two words to describe : '{content}'",
+            },   
+        ],
+        timeout = 40,
+    )
+    return completion.choices[0]['message']['content']
