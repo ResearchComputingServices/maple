@@ -10,9 +10,9 @@
             "name": "Python: data fetcher",
             "type": "python",
             "request": "launch",
-            "program": "maple_data_fetcher/data_fetcher.py",
+            "program": "runtime_scripts/data_fetcher.py",
             // "args": ["-e", "prod", "-i", "10", "-l", "info", "-o"],
-            "args": ["-e", "prod", "-i", "600", "-l", "info", "-o"],
+            "args": ["-e", "prod", "-i", "600", "-l", "info"],
             "console": "integratedTerminal",
             "justMyCode": true
         },

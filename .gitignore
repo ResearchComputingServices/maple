@@ -9,12 +9,12 @@ _news*
 
 .env.secret
 maple-structures/pyproject.toml
-maple-structures/build*
+maple-structures/build
 maple-structures/dist*
 *.egg-info*
 data/
 # tests*
-
+*/build*
 
 politics*
 backend/
