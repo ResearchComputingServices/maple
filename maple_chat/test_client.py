@@ -1,3 +1,4 @@
+from http import client
 import logging
 import coloredlogs
 import asyncio
@@ -50,18 +51,19 @@ some_keywords = [
 ]
 
 
-async def main():
+def main():
     # logging.basicConfig(level=logging.DEBUG)
     coloredlogs.install(level=logging.DEBUG)
     config = cfg.load_config(cfg.PRODUCTION)
     chatgpt_client = ChatgptClient(
         MapleAPI(
             f"http://{config['MAPLE_BACKEND_IP']}:{config['MAPLE_BACKEND_PORT']}"),
-        chatgpt_api_key=str(uuid4()),  # config['MAPLE_CHATGPT35TURBO_APIKEY'],
-        # chatgpt_api_key='60cfd06e-06d1-4f4c-8f4e-24e36b543dd7',
+        # chatgpt_api_key=config['MAPLE_CHATGPT35TURBO_APIKEY'],
+        chatgpt_api_key='60cfd06e-06d1-4f4c-8f4e-24e36b543dd7',
+        # chatgpt_api_key=str(uuid4()),
         socket_io_api_key=config['MAPLE_CHAT_SOCKETIO_KEY'],
         socket_io_ip=config['MAPLE_CHAT_IP'],
-        socket_io_port=5004  # config['MAPLE_CHAT_PORT']
+        socket_io_port=5003  # config['MAPLE_CHAT_PORT']
     )
     
     # summary = chat_summary(
@@ -76,34 +78,38 @@ async def main():
         job_type='summary',
         content=dict(
             uuid=str(uuid4()))) for i in range(10)])
-    # topic name jobs
-    for _ in range(10):
-        jobs.append(
-            dict(
-                job_type='topic_name',
-                content = dict(
-                    keyword=some_keywords[random.randint(0,len(some_keywords)-1)],
-                    uuid=str(uuid4()),
-                    ),
-            )
-        )
     
-    for _ in range(10):
-        jobs.append(
-            dict(
-                job_type = 'bullet_summary',
-                content = dict(
-                    uuid = str(uuid4()),
-                    content = [[' '.join(keywords)] for keywords in some_keywords]
+    if False:
+        # topic name jobs
+        for _ in range(10):
+            jobs.append(
+                dict(
+                    job_type='topic_name',
+                    content = dict(
+                        keyword=some_keywords[random.randint(0,len(some_keywords)-1)],
+                        uuid=str(uuid4()),
+                        ),
                 )
             )
-        )
+    if True:
+        for _ in range(10):
+            jobs.append(
+                dict(
+                    job_type = 'bullet_summary',
+                    content = dict(
+                        uuid = str(uuid4()),
+                        content = [[' '.join(keywords)] for keywords in some_keywords]
+                    )
+                )
+            )
     
     # topic bullet summary
+    
     
     count = 0
     
     while True:
+        random.shuffle(jobs)
         for job in jobs:
             if job['job_type'] == 'summary':
                 chatgpt_client.request_chat_summary(job['content'])
@@ -114,9 +120,11 @@ async def main():
             count += 1
             logger.debug(f"{count}: {job['content']}")
             time.sleep(0)
-        asyncio.sleep(120)
+        
+        time.sleep(random.randint(60,120))
+        chatgpt_client.sleep(0)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
-    
+    # asyncio.run(main())
+    main()

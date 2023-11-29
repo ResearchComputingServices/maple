@@ -80,7 +80,7 @@ class ChatgptServer(socketio.AsyncServer):
         chatgpt_api_key: str = None,
         article_fetching: bool = False) -> None:
         
-        super().__init__()
+        super().__init__(ping_timeout=600)
         self.logger=logging.getLogger('ChatgptServer')
         
         self.maple_lock = Lock()
@@ -149,7 +149,7 @@ class ChatgptServer(socketio.AsyncServer):
                 )
     
     async def _fetch_pending_summaries(self):
-        await asyncio.sleep(1)
+        # await asyncio.sleep(1)
         while True:
             self.logger.info('Fetching articles without chat_summary.')
             try:
@@ -167,12 +167,7 @@ class ChatgptServer(socketio.AsyncServer):
             sec = rcs.utils.time_to_midnight()
             self.logger.info('Next article fetching schedule in %.2f hours.', sec/60/60)
             await asyncio.sleep(sec)
-    
-    
-    # async def _chatgpt_summary(self, keywords: list[str], api_key: str):
-    #     summary = chatgpt_summary(keywords, api_key)
-    #     return summary
-        
+
     async def _process_job_summary(self, job, force_update: bool = False):
         # check if uuid in job details
         if 'uuid' not in job['job_details']:
@@ -187,12 +182,16 @@ class ChatgptServer(socketio.AsyncServer):
                 article = self.maple_api.article_get(uuid=job['job_details']['uuid'])
                 
                 if isinstance(article, list):
-                    article = article[0]
+                    if len(article) > 0:
+                        article = article[0]
+                    else:
+                        self.logger.warning('Article with uuid %s does not exist on backend.', job['job_details']['uuid'])
                 else:
                     self.logger.warning('Failed retrieving article. %s', article)
                 break
             except Exception as exc:
                 self.logger.error("Error retrieving article. %s", exc)
+                return
         
         # get chat summary using chatgpt
         if isinstance(article, Article):
@@ -218,6 +217,52 @@ class ChatgptServer(socketio.AsyncServer):
             except Exception as exc:
                 self.logger.error('Failed updating article %s. %s', article.uuid, exc)
         # self.maple_keys_in_use.remove(job['api_key'])
+    
+    async def _process_job_topic_name(self, job):
+        job_send = job.copy()
+        try:
+            topic_name = await chatgpt_topic_name( job_send['job_details']['keyword'], job_send['api_key'])
+            job_send['results'] = topic_name
+        except Exception as exc:
+            self.logger.error('Failed query from chatgpt. %s', exc)
+            return
+        
+        try:
+            if job_send['sid'] is not None:
+                self.logger.debug("Sending results of topic name job to %s", job['sid'])
+                await self.emit(
+                    'topic_name_results',
+                    job_send,
+                    to=job_send['sid'],
+                )
+                self.logger.info(
+                    "Sent topic name results for topic %s", 
+                    job_send['job_details']['uuid'])
+        except Exception as exc:
+            self.logger.error('Failed replying to job. %s', exc)
+    
+    async def _process_job_bullet_summary(self, job):
+        job_send = job.copy()
+        
+        try:
+            bullet_summary = await chatgpt_bullet_summary(job['job_details']['content'], job['api_key'])
+            job_send['results'] = bullet_summary
+        except Exception as exc:
+            self.logger.error('Failed query from chatgpt: %s', exc)
+            
+        try:
+            if job_send['sid'] is not None:
+                self.logger.debug("Sending results of bullet summary job to %s", job['sid'])
+                await self.emit(
+                    'bullet_summary_results',
+                    job_send,
+                    to=job_send['sid'],
+                )
+                self.logger.info(
+                    "Sent bullet summary results for topic %s", 
+                    job_send['job_details']['uuid'])
+        except Exception as exc:
+            self.logger.error('Failed replying to job. %s', exc)
         
     async def _process_job(self, job):
         
@@ -229,11 +274,11 @@ class ChatgptServer(socketio.AsyncServer):
             # )
         
         elif job['job_type'] == JobType.topic_name:
-            await asyncio.sleep(1)
+            await self._process_job_topic_name(job)
             # self.maple_keys_in_use.remove(job['api_key'])
         
         elif job['job_type'] == JobType.bullet_summary:
-            await asyncio.sleep(1)
+            await self._process_job_bullet_summary(job)
             # self.maple_keys_in_use.remove(job['api_key'])
         
         self.maple_keys_in_use.remove(job['api_key'])
@@ -260,6 +305,7 @@ class ChatgptServer(socketio.AsyncServer):
             if job['api_key'] not in self.maple_keys_in_use:
                 self.maple_keys_in_use.append(job['api_key'])
                 self.maple_jobs.remove(job)
+                
                 return job
         
         return None
@@ -267,15 +313,23 @@ class ChatgptServer(socketio.AsyncServer):
     async def _process(self):
         """the process to be executed. run forever...
         """
+        tstart = time.time()
+        tlog = time.time()
         while True:
             try:
-                self.logger.debug('_process: Jobs enqueued: %d', len(self.maple_jobs))
+                if (time.time() - tlog) > 5:
+                    tlog = time.time()
+                    self.logger.debug(
+                        'Jobs enqueued: %d. Total time: %.2fh',
+                        len(self.maple_jobs),
+                        (time.time()-tstart)/60/60,
+                        )
+                
                 job = self._get_job()
                 if job is None:
-                    await self.sleep(1)
+                    await self.sleep(0)
                     continue
                 self.start_background_task(self._process_job, job)
-                # self.loop.create_task(self._process_job(job))
                 await self.sleep(0)
             except Exception as exc:
                 self.logger.error("_process run into problems: %s", exc)
@@ -284,11 +338,11 @@ class ChatgptServer(socketio.AsyncServer):
     def run(self):
         """run server and tasks
         """
-        # self.start_background_task(self._process)
-        self.loop.create_task(self._process())
+        self.start_background_task(self._process)
+        # self.loop.create_task(self._process())
         if self._article_fetching:
-            # self.start_background_task(self._fetch_pending_summaries)
-            self.loop.create_task(self._fetch_pending_summaries())
+            self.start_background_task(self._fetch_pending_summaries)
+            # self.loop.create_task(self._fetch_pending_summaries())
         web.run_app(
             self._app,
             host = self._socket_io_ip,
