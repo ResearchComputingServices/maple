@@ -3,12 +3,24 @@ import logging
 import argparse
 import enum
 import datetime
+
+from httpx import delete
+import rcs
 from maple_interface import MapleAPI
 from maple_config import config as cfg
 
 ENV = cfg.PRODUCTION
 
 logger = logging.getLogger('ModelIterationDeletion')
+
+rcs.utils.configure_logging(
+    level='info',
+    output_directory='logs',
+    output_filename_prefix='model_iteration_deletion',
+    output_file_max_size_bytes=5e6,
+    n_log_files = 1,
+    use_postfix_hour = False,
+)
 
 config = cfg.load_config(ENV)
 
@@ -19,6 +31,8 @@ class DeleteType(enum.Enum):
 
 
 def main(delete_type: DeleteType ):
+    logger.info("Delete model iterations.")
+    
     maple = MapleAPI(
         authority=f"http://{config['MAPLE_BACKEND_IP']}:{config['MAPLE_BACKEND_PORT']}"
     )
@@ -44,7 +58,11 @@ def main(delete_type: DeleteType ):
         if delete_type == DeleteType.all:
             delete_model_iterations = model_iterations
     
-    
+    if len(delete_model_iterations) > 0:
+        logger.info('Attempt deletion of %d model iterations.', len(delete_model_iterations))
+    else: 
+        logger.info("No model iterations will be deleted.")
+        
     for model_iteration in delete_model_iterations:
         try:
             logger.info('Removing model iteration %s', model_iteration.uuid)
@@ -53,8 +71,7 @@ def main(delete_type: DeleteType ):
                 logger.error('Failed deletion of model_iteration with uuid: %s', model_iteration.uuid)
 
         except Exception as exc:
-            logger.error('Failed to remove model iteration %s', s)
-
+            logger.error('Failed to remove model iteration %s.', exc)
 
 
 parser = argparse.ArgumentParser()
