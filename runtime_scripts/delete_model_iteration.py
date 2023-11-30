@@ -86,10 +86,10 @@ def delete_model_iteration(delete_type: DeleteType):
                 logger.debug('Model iteration %s does not have data. Skip data deletion.', model_iteration.uuid)
             
             # remove from backend
-            # response = maple.model_iteration_delete(model_iteration.uuid)
-            # if response != 200:
-            #     logger.error(
-            #         'Failed deletion of model_iteration with uuid: %s', model_iteration.uuid)
+            response = maple.model_iteration_delete(model_iteration.uuid)
+            if response != 200:
+                logger.error(
+                    'Failed deletion of model_iteration with uuid: %s. %s', model_iteration.uuid, response)
 
         except Exception as exc:
             logger.error('Failed to remove model iteration %s.', exc)

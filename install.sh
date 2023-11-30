@@ -2,10 +2,11 @@
 
 VENV=".venv"
 usage(){
-    echo "install"
+    echo "install maple project."
     echo ""
     echo "Syntax:"
-    echo "./install.sh [-p] [-h]"
+    echo "./install.sh [-hpg] "
+    echo
     echo "options"
     echo "h     help"
     echo "p     create pm2 tasks"
@@ -79,6 +80,7 @@ while getopts "hpg" arg; do
             ;;
         h) 
             usage
+            exit
             ;;
     esac
 done
