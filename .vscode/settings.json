@@ -11,5 +11,6 @@
         "maple_interface",
         "maple_proc",
         "maple_structures",
+        "~/rcs-utils",
     ]
 }

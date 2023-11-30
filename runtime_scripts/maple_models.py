@@ -24,7 +24,6 @@ logger = logging.getLogger('maple_models')
 
 def main(models, log_level, debug_limits = False):
     ENV = cfg.PRODUCTION
-
     LOG_OUTPUT_DIRECTORY = 'logs'
     LOG_OUTPUT_FILENAME_PREFIX = 'maple_models'
 
