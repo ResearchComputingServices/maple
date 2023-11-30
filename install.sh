@@ -1,49 +1,84 @@
 #!/bin/bash
 
 VENV=".venv"
-
-[ -d $VENV ] && echo "$VENV already exists" || python3 -m venv $VENV
-
-source $VENV/bin/activate
-
-pip install --upgrade pip
-
-pip install -r requirements.txt
-
-pip install python-socketio python-socketio[client]
-
-cd maple_structures
-
-pip install -e .
-
-cd ../maple_proc
-
-pip install -e .
-
-pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.6.0/en_core_web_sm-3.6.0.tar.gz
-
-cd ../maple_interface
-
-pip install -e .
-
-cd ../maple_config
-
-pip install -e .
-
-cd ../maple_chat
-
-pip install -e .
-
-cd ../
-
-cdir=$(pwd)
-cd ~
-[ -d rcs-utils ] && echo "rcs directory already exist" || git clone git@github.com:ResearchComputingServices/rcs-utils.git
-cd rcs-utils
-git pull
-pip install -e .
-cd $cdir
+usage(){
+    echo "install"
+    echo ""
+    echo "Syntax:"
+    echo "./install.sh [-p] [-h]"
+    echo "options"
+    echo "h     help"
+    echo "p     create pm2 tasks"
+    echo "g     install required python packages."
+    echo 
+}
 
 
-# pm2 start scripts/chatgpt_process.py --interpreter .venv/bin/python3 
-# pm2 start maple_data_fetcher/data_fetcher.py --interpreter .venv/bin/python3  -- -e prod -i 600 -l info
+install_packages(){
+    [ -d $VENV ] && echo "$VENV already exists" || python3 -m venv $VENV
+
+    source $VENV/bin/activate
+
+    pip install --upgrade pip
+
+    pip install -r requirements.txt
+
+    pip install python-socketio python-socketio[client]
+
+    cd maple_structures
+
+    pip install -e .
+
+    cd ../maple_proc
+
+    pip install -e .
+
+    pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.6.0/en_core_web_sm-3.6.0.tar.gz
+
+    cd ../maple_interface
+
+    pip install -e .
+
+    cd ../maple_config
+
+    pip install -e .
+
+    cd ../maple_chat
+
+    pip install -e .
+
+    cd ../
+
+    cdir=$(pwd)
+    cd ~
+    [ -d rcs-utils ] && echo "rcs directory already exist" || git clone git@github.com:ResearchComputingServices/rcs-utils.git
+    cd rcs-utils
+    git pull
+    pip install -e .
+    cd $cdir
+}
+
+create_pm2_tasks(){
+    pm2 delete chatgpt 2> /dev/null && pm2 start runtime_scripts/chatgpt.py --interpreter .venv/bin/python3 
+    pm2 delete data_fetcher 2> /dev/null && pm2 start maple_data_fetcher/data_fetcher.py --interpreter .venv/bin/python3  -- -e prod -i 600 -l info
+    pm2 delete delete_model_iteration 2> /dev/null && pm2 start runtime_scripts/delete_model_iteration.py --interpreter .venv/bin/python3 -- -t old -a -l debug
+    pm2 save
+    pm2 kill
+    pm2 resurrect
+    pm2 startup
+    sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $USER --hp $HOME
+}
+
+while getopts "hpg" arg; do
+    case "${arg}" in 
+        p)
+            create_pm2_tasks
+            ;;
+        g) 
+            install_packages
+            ;;
+        h) 
+            usage
+            ;;
+    esac
+done
