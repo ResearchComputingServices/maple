@@ -131,13 +131,13 @@ async def chatgpt_summary(content: str, api_key: str):
 async def chatgpt_topic_name(keywords: list[str], api_key: str):
     client = AsyncOpenAI(api_key=api_key)
        
-    content = ', '.join(keywords)
+    content = ' '.join(keywords)
     completion = await client.chat.completions.create(
         model="gpt-3.5-turbo-16k",
         messages=[
             {
                 "role":"user",
-                "content": f"generate at most two words to describe : '{content}'",
+                "content": f"generate at most two words to describe these words: '{content}.'",
             },
         ],
         timeout = 40,

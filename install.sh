@@ -24,6 +24,8 @@ install_packages(){
 
     pip install -r requirements.txt
 
+    pip install --upgrade pip setuptools
+
     pip install python-socketio python-socketio[client]
 
     cd maple_structures

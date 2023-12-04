@@ -4,7 +4,22 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-
+        {
+            "name": "Python: maple_models",
+            "type": "python",
+            "request": "launch",
+            "program": "runtime_scripts/maple_models.py",
+            "args":[
+                "--model",
+                "bert",
+                "--level",
+                "debug",
+                "--debug-limits",
+                "--run-once"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
         {
             "name": "Python: Current File",
             "type": "python",
