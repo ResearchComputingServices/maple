@@ -1,12 +1,11 @@
 import logging
 import os
-from turtle import update
-from h11 import Data
-from networkx import bidirectional_dijkstra
+import shutil
 from umap import UMAP
 import timeit
 import time
 import random
+import json
 from sentence_transformers import SentenceTransformer
 from requests import Response
 from maple_chatgpt.chatgpt_client import ChatgptClient
@@ -41,7 +40,18 @@ class MapleProcessing:
         self._debug_limits = debug_limits
         self._chatgpt_client = chatgpt_client
         self._model_iteration_datapath = model_iteration_datapath
+        self._init_vars()
 
+    def _init_vars(self):
+        self.model_level1 = None
+        self.model_level2 = None
+        self.model_level3 = None
+        self._model_iteration = ModelIteration()
+        self._training_data = []
+        self._article_classified = []
+        self._processed = []
+        
+        
     @property
     def models(self):
         return [
@@ -122,7 +132,6 @@ class MapleProcessing:
                         f'Missing chat_summary for article {article.uuid} {article.url}')
                 summaries.append(summary)
 
-            # TODO compute position using umap
             positions = self._detect_positions(summaries)
 
             # create processed objects
@@ -132,7 +141,7 @@ class MapleProcessing:
                     Processed(
                         article=article,
                         modelIteration=self._model_iteration,
-                        position=position  # TODO compute position using umap
+                        position=position,
                     )
                 )
 
@@ -176,6 +185,22 @@ class MapleProcessing:
                     self._model_iteration.article_classified += len(
                         processed_list)
                     self._update_model_iteration()
+                
+                # store articles and processed
+                for var in ['_article_classified', '_processed']:
+                    if not hasattr(self, var):
+                        setattr(self, var, [])
+
+                getattr(
+                    self,
+                    '_article_classified'
+                ).extend(articles)
+                
+                getattr(
+                    self,
+                    '_processed',
+                ).extend(processed_list)
+                
             except Exception as exc:
                 self.logger.error('Failed to post processed. %s', exc)
 
@@ -191,8 +216,8 @@ class MapleProcessing:
                     f'model_level{level}').status = 'complete'
         self._update_model_iteration()
 
-    def _classify_articles(self, articles: list[Article], create_processed: bool = True):
-        pass
+    # def _classify_articles(self, articles: list[Article], create_processed: bool = True):
+    #     pass
 
     def _fetch_training_data(self):
         # Fetch data until minimum number of articles are reached.
@@ -247,6 +272,11 @@ class MapleProcessing:
             # Create topics on dababase
             topic_info = model.maple_get_topic_info()
             for topic in topic_info:
+                if topic.prevalence < 0:
+                    topic.prevalence = 0
+                if topic.prevalence > 1:
+                    topic.prevalence = 1
+                    
                 topic_structure = Topic(
                     name = topic.name,
                     keyword = topic.keyword,
@@ -273,18 +303,7 @@ class MapleProcessing:
                 f'model_level{level}')
             os.makedirs(model_path, exist_ok=True)
             model.maple_save(model_path=model_path)
-            # model.save(path=model_path, serialization="pytorch",
-            #            save_ctfidf=True, save_embedding_model=model.embedding_model)
-
-            # /data/ModelIteration/<modelIterationUUID>/models/<model_level1UUID>/model.fmt
-            # /data/ModelIteration/<modelIterationUUID>/models/<model_level2UUID>/model.fmt
-            # /data/ModelIteration/<modelIterationUUID>/models/<model_level3UUID>/model.fmt
-            # /data/ModelIteration/<modelIterationUUID>/modelIteration.json
-            # /data/ModelIteration/<modelIterationUUID>/processed.json
-            # /data/ModelIteration/<modelIterationUUID>/articles.json
-
-            # TODO send model to backend
-
+            
             # update model iteration on backend
             self._model_iteration.article_trained = len(documents)
 
@@ -311,9 +330,20 @@ class MapleProcessing:
         )
         
     def _chatgpt_tasks(self):
-        topic_mapping=dict()
+        resent_time = time.time()
+        resent_count = 0
+        wait_time = len(self._chatgpt_client.sent_jobs) * 10
+        while(len(self._chatgpt_client.sent_jobs) != 0):
+            if resent_count == 0 or (time.time()-resent_time >= wait_time):
+                resent_time = time.time()
+                resent_count+=1
+                self.logger.debug('Resubmitting chatgpt jobs.')
+                self._chatgpt_client.resubmit_jobs()
+                wait_time = len(self._chatgpt_client.sent_jobs) * 20
+                self.logger.debug('wait for %.2f seconds', wait_time)
         
-        topic_bullet_mapping = dict()
+        
+        topic_mapping=dict()
         
         for level in range(1,4):
             model_name = f"model_level{level}"
@@ -335,10 +365,7 @@ class MapleProcessing:
             return topic_bullet_mapping
 
         def check_missing_keys(pkey, skey):
-            return [key for key in skey if key not in pkey]
-        
-        
-        #TODO check if missing names and bullets. (partially doing...)
+            return [key for key in pkey if key not in skey]
         
         while True:
             missing_keys = check_missing_keys(topic_mapping.keys(), get_topic_name_mapping().keys())
@@ -369,7 +396,6 @@ class MapleProcessing:
                 topic_levels[topic.uuid] = level
         
         for topic_uuid, topic in topic_mapping.items():
-            print(topic_uuid, topic)
             topic.label = topic_name_mapping[topic.uuid]['results']
             topic.dot_summary = topic_bullet_mapping[topic.uuid]['results']
             self._update_topic_structure(
@@ -433,6 +459,12 @@ class MapleProcessing:
         return getattr(self._model_iteration, f"model_level{level}")
         
     def _update_model_iteration(self):
+        """Updates the model iteration in the backend.
+
+        Raises:
+            AttributeError: _description_
+            TypeError: _description_
+        """        
         if not hasattr(self, '_model_iteration'):
             raise AttributeError("Missing _model_iteration attribute.")
         #TODO retrieve chatgpt updates.
@@ -446,20 +478,58 @@ class MapleProcessing:
             self.model_level1.model_structure = self._model_iteration.model_level1
             self.model_level2.model_structure = self._model_iteration.model_level2
             self.model_level3.model_structure = self._model_iteration.model_level3
+    
+    def _store_data(self):
+        """Stores the data associated to a model iteration in zip format.
+        Values were created across different functions.
+        """
+        article_out = []
+        for article in self._article_classified:
+            article_out.append(
+                dict(
+                    uuid=article.uuid,
+                    url = article.url,
+                    content = article.chat_summary
+                )
+            )
+        
+        processed_out = []
+        for processed in self._processed:
+            processed_out.append(
+                processed.to_dict()
+            )
+        
+        path = os.path.join(
+            self._model_iteration_datapath,
+            self._model_iteration.uuid)
+        os.makedirs(path, exist_ok=True)
+        
+        to_store = [
+            dict(value=article_out, name='article.json'),
+            dict(value=processed_out, name='processed.json'),
+            dict(value=self._model_iteration.to_dict(), name='model_iteration.json'),
+        ]
+        for var_to_store in to_store:
+            try:
+                with open(os.path.join(path, var_to_store['name']), 'w', encoding='utf-8') as file:
+                    json.dump(var_to_store['value'], file, indent=2)
+            except Exception as exc:
+                self.logger.error('Failed to store file %s. %s', var_to_store['name'], exc)
+        
+        # zip directory now.
+        shutil.make_archive(path, 'zip', path)
+        # remove original directory
+        shutil.rmtree(path)
 
     def _cleanup(self):
-        #TODO implementation
-        delete_variables = [
-            'model_level1',
-            'model_level2',
-            'model_level3',
-        ]
-        for varname in delete_variables:
-            delattr(self, varname)
+        self._chatgpt_client.sent_jobs = dict()
+        self._chatgpt_client.topic_bullet_summary_results = []
+        self._chatgpt_client.topic_name_results = []
         
     def run(self, *, run_once: bool = False):
         run_count = 0
         while True:
+            self._init_vars()
             iteration_time_start = timeit.default_timer()
             run_count += 1
             if run_once and run_count > 1:
@@ -488,12 +558,14 @@ class MapleProcessing:
 
                 self._train_models(documents=summaries)
 
+                self._classify_all_articles()
+                
                 self._chatgpt_tasks()
                 
-                self._classify_all_articles()
-
+                self._store_data()
+                
+                self._cleanup()
+                
             iteration_time = timeit.default_timer()-iteration_time_start
             self.logger.info('Iteration for %s ended in %.2f seconds',
                              self._model_iteration.name, iteration_time)
-
-            self._cleanup()

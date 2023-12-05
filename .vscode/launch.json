@@ -15,7 +15,7 @@
                 "--level",
                 "debug",
                 "--debug-limits",
-                "--run-once"
+                // "--run-once"
             ],
             "console": "integratedTerminal",
             "justMyCode": true

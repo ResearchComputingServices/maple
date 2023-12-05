@@ -103,18 +103,23 @@ class ChatgptServer(socketio.AsyncServer):
         
     def maple_add_job(self, sid: str, api_key: str, job_type: JobType, job_details: any):
         with self.maple_lock:
-            self.maple_jobs.append(
-                dict(
+            job = dict(
                     sid = sid,
                     job_type = job_type,
                     api_key = api_key,
                     job_details = job_details,
                 )
-            )
-        self.logger.debug(
-            "Added job: %s. Total jobs: %d", 
-            job_type,
-            len(self.maple_jobs))
+            
+            if job in self.maple_jobs:
+                self.logger.warning("Job was not added! Already exists.")
+            else:
+                self.maple_jobs.append(
+                    job
+                )
+                self.logger.debug(
+                    "Added job: %s. Total jobs: %d", 
+                    job_type,
+                    len(self.maple_jobs))
     
     async def client_add(self, sid: str):
         """adds a the sid to a list of clients.
@@ -163,7 +168,7 @@ class ChatgptServer(socketio.AsyncServer):
                                 job_details = article.to_dict()
                             )
             except Exception as exc:
-                self.logger.error('Failed fetch_pending_summaries. %s')
+                self.logger.error('Failed fetch_pending_summaries. %s', exc)
             sec = rcs.utils.time_to_midnight()
             self.logger.info('Next article fetching schedule in %.2f hours.', sec/60/60)
             await asyncio.sleep(sec)
@@ -220,12 +225,14 @@ class ChatgptServer(socketio.AsyncServer):
     
     async def _process_job_topic_name(self, job):
         job_send = job.copy()
-        try:
-            topic_name = await chatgpt_topic_name( job_send['job_details']['keyword'], job_send['api_key'])
-            job_send['results'] = topic_name
-        except Exception as exc:
-            self.logger.error('Failed query from chatgpt. %s', exc)
-            return
+        while True:
+            try:
+                topic_name = await chatgpt_topic_name( job_send['job_details']['keyword'], job_send['api_key'])
+                job_send['results'] = topic_name
+                break
+            except Exception as exc:
+                self.logger.error('Failed query from chatgpt. %s', exc)
+                return
         
         try:
             if job_send['sid'] is not None:
@@ -244,11 +251,13 @@ class ChatgptServer(socketio.AsyncServer):
     async def _process_job_bullet_summary(self, job):
         job_send = job.copy()
         
-        try:
-            bullet_summary = await chatgpt_bullet_summary(job['job_details']['content'], job['api_key'])
-            job_send['results'] = bullet_summary
-        except Exception as exc:
-            self.logger.error('Failed query from chatgpt: %s', exc)
+        while True:
+            try:
+                bullet_summary = await chatgpt_bullet_summary(job['job_details']['content'], job['api_key'])
+                job_send['results'] = bullet_summary
+                break
+            except Exception as exc:
+                self.logger.error('Failed query from chatgpt: %s', exc)
             
         try:
             if job_send['sid'] is not None:
@@ -305,7 +314,6 @@ class ChatgptServer(socketio.AsyncServer):
             if job['api_key'] not in self.maple_keys_in_use:
                 self.maple_keys_in_use.append(job['api_key'])
                 self.maple_jobs.remove(job)
-                
                 return job
         
         return None

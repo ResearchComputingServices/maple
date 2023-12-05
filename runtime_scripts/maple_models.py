@@ -78,7 +78,7 @@ def main(*,
     )
 
     # maple_proc.DEBUG_LIMIT_PROCESS_COUNT = 200
-    maple_proc.run(run_once=True)
+    maple_proc.run(run_once=run_once)
 
 
 if __name__ == '__main__':

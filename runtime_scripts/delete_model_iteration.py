@@ -85,6 +85,9 @@ def delete_model_iteration(delete_type: DeleteType):
             else:
                 logger.debug('Model iteration %s does not have data. Skip data deletion.', model_iteration.uuid)
             
+            if os.path.isfile(f"{model_iteration_data_path}.zip"):
+                os.remove(f"{model_iteration_data_path}.zip")
+                        
             # remove from backend
             response = maple.model_iteration_delete(model_iteration.uuid)
             if response != 200:

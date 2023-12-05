@@ -1,6 +1,7 @@
 import logging
 from numpy import require
 import socketio
+import random
 from socketio.exceptions import BadNamespaceError, ConnectionError
 import threading
 import asyncio
@@ -23,14 +24,24 @@ class ChatgptClientNamespace(socketio.ClientNamespace):
     def on_topic_name_results(self, data):
         self.client.logger.debug(data)
         self.client.topic_name_results.append(data)
+        
+        key = data['job_details']['uuid'], 'get_topic_name'
+        if key in self.client.sent_jobs:
+            job_popped = self.client.sent_jobs.pop(key)
+            self.client.logger.debug('removed job from sent_jobs: %s', job_popped)
     
     def on_bullet_summary_results(self, data):
-        self.client.topic_bullet_summary_results.append(data)
         self.client.logger.debug(
-            "Received bullet summary for topic (%d). %s",
+            "Received bullet summary for topic (%d). %s.",
             len(self.client.topic_bullet_summary_results),
-            data['job_details']['uuid'])
-        pass
+            data['job_details']['uuid'],
+            )
+        self.client.topic_bullet_summary_results.append(data)
+        
+        key = data['job_details']['uuid'], 'get_bullet_summary'
+        if key in self.client.sent_jobs:
+            job_popped = self.client.sent_jobs.pop(key)
+            self.client.logger.debug('removed job from sent_jobs: %s', key[0])
 
 
 class ChatgptClient(socketio.Client):
@@ -59,17 +70,17 @@ class ChatgptClient(socketio.Client):
         
         self.topic_name_results = []
         self.topic_bullet_summary_results = []
+        
+        self.sent_jobs = dict()
+        
         self.register_namespace(ChatgptClientNamespace('/'))
         self._connect()
 
-    def on_connect(self):
-        print('on_connect')
-        pass
+    # def on_connect(self):
+    #     self.logger.debug('on_connect')
 
-
-    def on_disconnect(self):
-        print('on_disconnect')
-        pass
+    # def on_disconnect(self):
+    #     self.logger.debug('on_disconnect')
 
     def _connect(self):
         while True:
@@ -127,13 +138,13 @@ class ChatgptClient(socketio.Client):
         
         while True:
             try:
-                self.emit(
-                    'get_topic_name',
-                    dict(
+                event = 'get_topic_name'
+                data = dict(
                         api_key = self._chatgpt_api_key,
                         content = topic,
-                    ),
                     )
+                self.emit(event,data)
+                self._store_sent_job(event, data, topic['uuid'])
                 break
             except BadNamespaceError as exc:
                 if until_success:
@@ -154,13 +165,13 @@ class ChatgptClient(socketio.Client):
             
         while True:
             try:
-                self.emit(
-                    'get_bullet_summary',
-                    dict(
-                        api_key = self._chatgpt_api_key,
-                        content = topic,
-                    )
+                event = 'get_bullet_summary'
+                data = dict(
+                    api_key = self._chatgpt_api_key,
+                    content = topic,
                 )
+                self.emit(event, data)
+                self._store_sent_job(event, data, topic['uuid'])
                 break
             except BadNamespaceError as exc:
                 if until_success:
@@ -168,3 +179,21 @@ class ChatgptClient(socketio.Client):
                     self.sleep(1)
                     continue
                 raise exc
+    
+    def _store_sent_job(self, event, data, uuid):
+        self.sent_jobs[uuid, event] = dict(
+            data=data,
+        )
+    
+    def resubmit_jobs(self):
+        for job in self.sent_jobs.copy():
+            while True:
+                try:
+                    self.emit(
+                        job[1],
+                        self.sent_jobs[job]['data'])
+                    break
+                except Exception as exc:
+                    self.logger.warning('Failed to resubmit job. Reattempting... %s, %s', job[0], exc)
+                    self.sleep(random.random()*2)
+                    continue
