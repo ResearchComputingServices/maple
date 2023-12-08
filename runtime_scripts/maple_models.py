@@ -19,6 +19,7 @@ parser.add_argument('--level', type=str, choices=[
                     'debug', 'info', 'warning', 'error', 'critical'], default='info', help="The log level")
 parser.add_argument('--debug-limits', action='store_true', help="Limits the number of articles used in a model iteration. Used for debug purposes.")
 parser.add_argument('--run-once', action='store_true',help="If provided, model_iteration will be executed only once.")
+parser.add_argument('--logname', type=str, default='maple_models', help="The name of the log file.")
 logger = logging.getLogger('maple_models')
 
 
@@ -26,7 +27,8 @@ def main(*,
     models: list[MapleModel],
     log_level: str,
     debug_limits: bool = False,
-    run_once: bool = False
+    run_once: bool = False,
+    log_filename: str = 'maple_models',
     ):
     ENV = cfg.PRODUCTION
     LOG_OUTPUT_DIRECTORY = 'logs'
@@ -43,7 +45,7 @@ def main(*,
         level=log_level,
         output_to_console=False,
         output_directory=LOG_OUTPUT_DIRECTORY,
-        output_filename_prefix=LOG_OUTPUT_FILENAME_PREFIX,
+        output_filename_prefix=log_filename,
         n_log_files=3,
         use_postfix_hour=False,
         force=True
@@ -94,4 +96,5 @@ if __name__ == '__main__':
         models=models,
         log_level=args.level,
         debug_limits=args.debug_limits,
-        run_once=args.run_once)
+        run_once=args.run_once,
+        log_filename=args.logname)

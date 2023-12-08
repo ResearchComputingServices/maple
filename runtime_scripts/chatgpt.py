@@ -37,7 +37,7 @@ server = ChatgptServer(
     socket_io_ip=config['MAPLE_CHAT_IP'],
     socket_io_port=config['MAPLE_CHAT_PORT'],
     socket_io_api_key=config['MAPLE_CHAT_SOCKETIO_KEY'],
-    # article_fetching=True,
+    article_fetching=True,
 )
 
 server.run()
