@@ -332,11 +332,13 @@ class MapleAPI:
             params=None,
             body=[proc.to_dict() for proc in processed])
         
-        if response:
+        if response.ok:
             if response.status_code != 201:
                 return response
             else:
                 return True
+        else:
+            return response
         
     def processed_post(self, processed: Processed) -> Processed:
         "Posts a processed in the database."

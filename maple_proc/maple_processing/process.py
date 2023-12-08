@@ -4,7 +4,9 @@ import nltk
 import re
 import heapq
 from maple_structures import Article
-import openai
+# from openai import OpenAI
+from openai import AsyncOpenAI
+import asyncio
 
 logger = logging.getLogger('maple_proc')
 
@@ -110,32 +112,52 @@ def sentiment_analysis(articles: list[Article]) -> None:
         article.sentiment = sentiment.polarity_scores(article.content)
         
         
-def chat_summary(content: str, api_key: str):
-    openai.api_key = api_key
-    completion = openai.ChatCompletion.create(
+async def chatgpt_summary(content: str, api_key: str):
+    client = AsyncOpenAI(api_key=api_key)
+    
+    completion = await client.chat.completions.create(
         model="gpt-3.5-turbo-16k",
         messages=[
             {
                 "role":"user",
                 "content": f"summarize in less than 300 words the following content: '{content}'",
-            },   
+            },
         ],
         timeout = 40,
     )
-    return completion.choices[0]['message']['content']
-    
-def name_topic(keywords: list[str], api_key: str):
-    openai.api_key = api_key
-    
-    content = ', '.join(keywords)
-    completion = openai.ChatCompletion.create(
+    return completion.choices[0].message.content
+
+
+async def chatgpt_topic_name(keywords: list[str], api_key: str):
+    client = AsyncOpenAI(api_key=api_key)
+       
+    content = ' '.join(keywords)
+    completion = await client.chat.completions.create(
         model="gpt-3.5-turbo-16k",
         messages=[
             {
                 "role":"user",
-                "content": f"generate at most two words to describe : '{content}'",
-            },   
+                "content": f"generate at most two words to describe these words: '{content}.'",
+            },
         ],
         timeout = 40,
     )
-    return completion.choices[0]['message']['content']
+    return completion.choices[0].message.content
+
+
+async def chatgpt_bullet_summary(content: list[str], api_key: str):
+    client = AsyncOpenAI(api_key=api_key)
+
+    completion = await client.chat.completions.create(
+        model="gpt-3.5-turbo-16k",
+        messages=[
+            {
+                "role":"user",
+                "content": f"generate a bullet point summary with a maximum of five bullets and fifthy words per point for the following content: '{content}'",
+                # "content": f"generate a list separeted by '\n\n' of bullet point summaries with a maximum of five items and fifthy words per item for the following content: '{content}'",
+            },
+        ],
+        timeout = 40,
+    )
+    
+    return completion.choices[0].message.content.split('\n')
