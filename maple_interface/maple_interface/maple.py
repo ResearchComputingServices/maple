@@ -255,8 +255,15 @@ class MapleAPI:
                 logger.error(exc)
                 return []
 
-    def model_put(self, model: Model) -> Model:
-        response = self._put("model", body=model.to_dict())
+    def model_put(self, model: Model, keep_fields:list[str] = None) -> Model:
+        body = model.to_dict()
+        
+        if keep_fields is not None:
+            if 'uuid' not in keep_fields:
+                keep_fields.append('uuid')
+            body = {key: val for key, val in body.items() if key in keep_fields}
+            
+        response = self._put("model", body=body)
         if response.status_code is not None:
             if response.status_code == 200:
                 try:
@@ -312,8 +319,16 @@ class MapleAPI:
                 logger.error(exc)
                 return []
 
-    def model_iteration_put(self, model_iteration: ModelIteration) -> ModelIteration:
-        response = self._put("model-iteration", body=model_iteration.to_dict())
+    def model_iteration_put(
+        self,
+        model_iteration: ModelIteration,
+        keep_fields: list[str] = None) -> ModelIteration:
+        body = model_iteration.to_dict()
+        if keep_fields is not None:
+            if 'uuid' not in keep_fields:
+                keep_fields.append('uuid')
+            body = {key: item for key, item in body.items() if key in keep_fields}
+        response = self._put("model-iteration", body=body)
         if response.status_code is not None:
             if response.status_code == 200:
                 try:

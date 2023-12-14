@@ -211,7 +211,7 @@ class MapleBert(MapleModel, BERTopic):
         """
         out = []
         topic_info = self.get_topic_info()
-        documents_len = topic_info['Topic'].sum()
+        documents_len = topic_info['Count'].sum()
         for row in topic_info.iterrows():
             out.append(
                 TopicInfo(

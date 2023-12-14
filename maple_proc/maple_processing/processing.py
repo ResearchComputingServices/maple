@@ -2,6 +2,7 @@ import logging
 import os
 import shutil
 from attr import has
+from httpx import get
 from torch import Value
 from umap import UMAP
 import timeit
@@ -11,8 +12,10 @@ import json
 import requests
 from sentence_transformers import SentenceTransformer
 from requests import Response
+from copy import deepcopy
+from rtpt_research import RTPTResearch
 from maple_chatgpt.chatgpt_client import ChatgptClient
-from maple_processing.process import chatgpt_bullet_summary
+# from maple_processing.process import chatgpt_bullet_summary
 from maple_structures import Article
 from maple_interface import MapleAPI
 from maple_structures import Processed, ModelIteration, Model, Topic
@@ -20,7 +23,7 @@ from .model import MapleBert, MapleModel
 
 
 class MapleProcessing:
-    DEBUG_LIMIT_PROCESS_COUNT = 3000
+    DEBUG_LIMIT_PROCESS_COUNT = 2000
     ARTICLE_PAGE_SIZE=1000
 
     def __init__(
@@ -82,6 +85,7 @@ class MapleProcessing:
         return self._sentence_transformer.encode(documents)
 
     def _detect_positions(self, documents: list[str], fit: bool = False):
+        tstart = timeit.default_timer()
         embeddings = self._maple_embed_documents(documents)
         if not hasattr(self, '_umap_model'):
             self._umap_model = UMAP(n_neighbors=10, n_components=2, min_dist=0.0,
@@ -89,6 +93,7 @@ class MapleProcessing:
         if fit:
             self._umap_model.fit(embeddings)
         positions = self._umap_model.transform(embeddings)
+        self.logger.debug("Time for _detect_positions: %.2fs", timeit.default_timer()-tstart)
         return positions
 
     def _create_models(self, model: MapleModel, *args, **kwargs):
@@ -118,11 +123,16 @@ class MapleProcessing:
 
     def _classify_all_articles(self):
         self._model_iteration.article_classified = 0
+        self._update_model_iteration(keep_fields=['article_classified'])
         # update status to classifying
         for level in range(1, 4):
-            getattr(self._model_iteration,
-                    f'model_level{level}').status = 'classifying'
-        self._update_model_iteration()
+            model_structure = getattr(self._model_iteration, f'model_level{level}')
+            model_structure.status = 'classifying'
+            self._update_model_structure(
+                level=level,
+                model_structure=model_structure,
+                keep_fields=['status'])
+        
 
         for articles_it in self.maple_api.article_iterator(limit=self.ARTICLE_PAGE_SIZE, page=0):
             time_start = timeit.default_timer()
@@ -137,19 +147,14 @@ class MapleProcessing:
                 continue
 
             # extract summaries from articles
+            tstart_summaries = timeit.default_timer()
             summaries = self._extract_chat_summaries(articles)
-            # summaries = []
-            # for article in articles:
-            #     summary = getattr(article, 'chat_summary', None)
-            #     if not summary:
-            #         self.logger.error(
-            #             'Missing chat_summary for article %s %s', article.uuid, article.url)
-            #         raise ValueError(
-            #             f'Missing chat_summary for article {article.uuid} {article.url}')
-            #     summaries.append(summary)
-
+            self.logger.debug("Extract summaries: %.2fs", timeit.default_timer()-tstart_summaries)
+            
+            tstart_positions = timeit.default_timer()
             positions = self._detect_positions(summaries)
-
+            self.logger.debug("Detect positions: %.2fs",timeit.default_timer()-tstart_positions)
+            
             # create processed objects
             processed_list = []
             for article, position in zip(articles, positions.tolist()):
@@ -174,12 +179,12 @@ class MapleProcessing:
                     setattr(processed, f'topic_level{level}', topic)
                     setattr(processed, f'topic_level{level}_prob', probs)
                 elapsed=timeit.default_timer()-tstart
-                self.logger.debug("classification time: %.2fs", elapsed)
+                self.logger.debug("Classification time: %.2fs", elapsed)
             # send all processed objects to backend
             self.logger.debug(
                 'Posting %d processed on backend.', len(processed_list))
             try:
-                tstart = timeit.default_timer()
+                tstart_post = timeit.default_timer()
                 response = self.maple_api.processed_post_many(processed_list)
                 
                 if isinstance(response, Response):
@@ -198,20 +203,22 @@ class MapleProcessing:
                         elif isinstance(response, Response):
                             self.logger.error('Failed to post processed. Reattempting. %s', response)
                             
-                self.logger.debug("Time to post processed: %.2fs", timeit.default_timer()-tstart)
+                self.logger.debug("Time to post processed: %.2fs", timeit.default_timer()-tstart_post)
                 self._model_iteration.article_classified += len(processed_list)
-                self._update_model_iteration()
+                self._update_model_iteration(keep_fields=['article_classified'])
                 
                 # store articles and processed
                 for var in ['_article_classified']:
                     if not hasattr(self, var):
                         setattr(self, var, [])
 
+                tstart_extend = timeit.default_timer()
                 getattr(
                     self,
                     '_article_classified'
                 ).extend(articles)
-
+                self.logger.debug("Time for extending articles: %.2fs",timeit.default_timer()-tstart_extend)
+            
                 
             except Exception as exc:
                 self.logger.error('Failed to post processed. %s', exc)
@@ -231,7 +238,7 @@ class MapleProcessing:
         # for level in range(1, 4):
         #     getattr(self._model_iteration,
         #             f'model_level{level}').status = 'complete'
-        self._update_model_iteration()
+        self._update_model_iteration(keep_fields=['article_classified'])
 
     # def _classify_articles(self, articles: list[Article], create_processed: bool = True):
     #     pass
@@ -297,7 +304,10 @@ class MapleProcessing:
             model_structure = model.model_structure
             model_structure.status = 'training'
 
-            model_structure = self._update_model_structure(level, model_structure=model_structure)
+            model_structure = self._update_model_structure(
+                level,
+                model_structure=model_structure,
+                keep_fields=['status'])
 
             # start training
             start_training_time = timeit.default_timer()
@@ -335,7 +345,7 @@ class MapleProcessing:
                     representative_docs=topic.representative_docs)
 
             # update model_structure with topics
-            model_structure = self._update_model_structure(level=level, model_structure=model_structure)
+            # model_structure = self._update_model_structure(level=level, model_structure=model_structure)
 
             model_path = os.path.join(
                 self._model_iteration_datapath,
@@ -344,11 +354,16 @@ class MapleProcessing:
             os.makedirs(model_path, exist_ok=True)
             model.maple_save(model_path=model_path)
             
-            # update model iteration on backend
-            self._model_iteration.article_trained = len(documents)
+        # update model iteration on backend
+        self._model_iteration.article_trained = len(documents)
 
-            # TODO try catch
-            self._update_model_iteration()
+        # TODO try catch
+        while True:
+            try:
+                self._update_model_iteration(keep_fields=['article_trained'])
+                break
+            except Exception as exc:
+                self.logger.warning('Failed to update model iteration. Reattempting... %s', exc)
 
     def _chatgpt_topic_bullet_summary(self, topic: Topic, representative_docs: list[str] ):
         data=dict(
@@ -380,7 +395,7 @@ class MapleProcessing:
                 self.logger.debug('Resubmitting chatgpt jobs.')
                 self._chatgpt_client.resubmit_jobs()
                 wait_time = len(self._chatgpt_client.sent_jobs) * 20
-                self.logger.debug('wait for %.2f seconds', wait_time)
+                self.logger.debug('Wait for %.2f seconds', wait_time)
         
         
         topic_mapping=dict()
@@ -411,7 +426,6 @@ class MapleProcessing:
             missing_keys = check_missing_keys(topic_mapping.keys(), get_topic_name_mapping().keys())
             if  len(missing_keys) != 0:
                 self.logger.warning('Still missing requests for topic name from chatgpt for topic uuids: %s', missing_keys)
-                #TODO resubmit jobs.
                 time.sleep(random.random()*2)
             else:
                 break
@@ -420,7 +434,6 @@ class MapleProcessing:
             missing_keys = check_missing_keys(topic_mapping.keys(), get_topic_bullet_mapping().keys())
             if  len(missing_keys) != 0:
                 self.logger.warning('Still missing requests for topic name from chatgpt for topic uuids: %s', missing_keys)
-                #TODO resubmit jobs.
                 time.sleep(random.random()*2)
             else:
                 break
@@ -447,10 +460,11 @@ class MapleProcessing:
         
         model = getattr(self, model_name)
         topic_in_model_structure = None
-        for i, t in enumerate(model.model_structure.topic):
-            if t.index==topic.index:
-                topic_in_model_structure = i
-                break
+        if model.model_structure.topic is not None:
+            for i, t in enumerate(model.model_structure.topic):
+                if t.index==topic.index:
+                    topic_in_model_structure = i
+                    break
         
         if topic_in_model_structure is None:
             while True:
@@ -458,7 +472,7 @@ class MapleProcessing:
                 if isinstance(updated_topic, Topic):
                     topic = updated_topic
                     model.model_structure.add_topic(topic)
-                    self._update_model_structure(level=level, model_structure=model.model_structure)
+                    # self._update_model_structure(level=level, model_structure=model.model_structure)
                     break
                 else:
                     self.logger.warning('Failed to post topic. Reattempting... %s', updated_topic)
@@ -469,24 +483,33 @@ class MapleProcessing:
                 if isinstance(updated_topic, Topic):
                     topic=updated_topic
                     model.model_structure.topic[topic_in_model_structure] = topic
-                    self._update_model_structure(level=level, model_structure=model.model_structure)
+                    # self._update_model_structure(level=level, model_structure=model.model_structure)
                     break
                 else:
                     self.logger.warning("Failed updating topic. Reattempting... %s", updated_topic)
+        
         return topic
     
-    def _update_model_structure(self, level: int, model_structure: Model):
+    def _update_model_structure(
+        self,
+        level: int,
+        model_structure: Model,
+        keep_fields: list[str] = None):
         while True:
             updated_model_structure = self.maple_api.model_put(model_structure)
             if isinstance(updated_model_structure, Model):
-                model_structure = updated_model_structure
+                if keep_fields is not None:
+                    for key in keep_fields:
+                        setattr(model_structure, key, getattr(updated_model_structure, key))
+                else:
+                    model_structure = updated_model_structure
                 break
             else:
                 self.logger.warning(
                     'Failed to update model structure. %s', 
                     updated_model_structure)
                 wait_time = random.random()*2
-                self.logger.debug("reattempt in %.2f seconds", wait_time)
+                self.logger.debug("Reattempt in %.2f seconds", wait_time)
                 time.sleep(wait_time)
                 continue
             
@@ -498,27 +521,39 @@ class MapleProcessing:
         )
         return getattr(self._model_iteration, f"model_level{level}")
         
-    def _update_model_iteration(self):
+    def _update_model_iteration(self, keep_fields: list[str]=None):
         """Updates the model iteration in the backend.
 
         Raises:
             AttributeError: _description_
             TypeError: _description_
-        """        
+        """
+        tstart = timeit.default_timer()
         if not hasattr(self, '_model_iteration'):
             raise AttributeError("Missing _model_iteration attribute.")
-        #TODO retrieve chatgpt updates.
         
         updated_model_structure = self.maple_api.model_iteration_put(
-            self._model_iteration)
+            self._model_iteration,
+            keep_fields=keep_fields)
+        self.logger.debug("Time to put model iteration: %.2fs", timeit.default_timer()-tstart)
         if not isinstance(updated_model_structure, ModelIteration):
             raise TypeError('Failed to update model structure')
         else:
-            self._model_iteration = updated_model_structure
+            if keep_fields is None:
+                self._model_iteration = updated_model_structure
+            else:
+                for key in keep_fields:
+                    setattr(self._model_iteration,
+                            key,
+                            getattr(updated_model_structure, key))
             self.model_level1.model_structure = self._model_iteration.model_level1
             self.model_level2.model_structure = self._model_iteration.model_level2
             self.model_level3.model_structure = self._model_iteration.model_level3
-    
+        self.logger.debug(
+            "Time to update model iteration: %.2fs (%s)",
+            timeit.default_timer()-tstart,
+            self._model_iteration.uuid)
+        
     def _store_data(self):
         """Stores the data associated to a model iteration in zip format.
         Values were created across different functions.
@@ -554,10 +589,61 @@ class MapleProcessing:
 
         self.remove_model_iteration_directory()
     
+    def _create_chart_data(self):
+        tstart = timeit.default_timer()
+        articles = []
+        for article in self._article_classified:
+            articles.append(dict(
+                uuid= article.uuid,
+                url = article.url,
+                createDate= article.createDate,
+                content=article.chat_summary,
+            ))
+        
+        
+        topic_map = dict()
+        topic_level_map = dict()
+        for level in range(1,4):
+            model = getattr(self, f'model_level{level}')
+            for topic in model.model_structure.topic:
+                topic_map[topic.uuid] = topic
+                topic_level_map[topic.uuid] = level
+        
+        tstart_rtpt = timeit.default_timer()
+        rtpt = RTPTResearch(
+            processed = deepcopy(self._processed),
+            article = articles,
+            model_iteration = self._model_iteration.to_dict(),
+            model_level1 = None,
+            model_level2 = None,
+            model_level3 = None,
+        )
+        
+        self.logger.debug("Time to update load rtpt research from chart: %.2fs",
+                            timeit.default_timer()-tstart_rtpt)
+        
+        for topic_uuid, chart in rtpt.charts.items():
+            tstart_topic_update = timeit.default_timer()
+            if topic_uuid in topic_map:
+                topic = topic_map[topic_uuid]
+                level = topic_level_map[topic_uuid]
+                topic.chart.update(chart)
+                self._update_topic_structure(level=level, topic=topic)
+                self.logger.debug("Time to update topic from chart: %.2fs",
+                                  timeit.default_timer()-tstart_topic_update)
+            else:
+                self.logger.warning('Missing topic uuid for chart')
+        
+        self.logger.debug("Time to update all charts: %.2fs",
+                            timeit.default_timer()-tstart)
+        
     def _on_model_iteration_fail(self):
         if hasattr(self, '_model_iteration'):
             if self._model_iteration.uuid is not None:
-                self.remove_model_iteration_directory()
+                try:
+                    self.remove_model_iteration_directory()
+                except Exception as exc:
+                    self.logger.error("Failed to remove model directory. %s", exc )
                 response = self.maple_api.model_iteration_delete(self._model_iteration.uuid)
                 while response not in [200,]:
                     if response == 200:
@@ -573,7 +659,7 @@ class MapleProcessing:
         
     def remove_model_iteration_directory(self):
         # remove original directory
-        shutil.rmtree(self.model_iteration_path)
+        shutil.rmtree(self.model_iteration_path, ignore_errors=True)
 
     def _cleanup(self):
         self._chatgpt_client.sent_jobs = dict()
@@ -617,20 +703,27 @@ class MapleProcessing:
                     self._chatgpt_tasks()
                     
                     #TODO create plot data for topics and models
-                    
+                    self._create_chart_data()
                     # Set status of model_iteration to complete.
                     for level in range(1, 4):
-                        getattr(self._model_iteration,
-                                f'model_level{level}').status = 'complete'
-                    self._update_model_iteration()
+                        model_structure = getattr(self._model_iteration,
+                                f'model_level{level}')
+                        model_structure.status = 'complete'
+                        self._update_model_structure(
+                            level=level,
+                            model_structure=model_structure,
+                            keep_fields=['status'])
+                    # self._update_model_iteration(keep_fields=['status'])
                     
                     self._store_data()
                     
                     self._cleanup()
                     
                 iteration_time = timeit.default_timer()-iteration_time_start
-                self.logger.info('Iteration for %s ended in %.2f seconds',
-                                self._model_iteration.name, iteration_time)
+                self.logger.info(
+                    'Iteration for %s ended in %.2f seconds',
+                    self._model_iteration.name,
+                    iteration_time)
             except Exception as exc:
                 self.logger.critical('Failed model iteration. %s on line %d', exc, exc.__traceback__.tb_lineno)
                 self._on_model_iteration_fail()
