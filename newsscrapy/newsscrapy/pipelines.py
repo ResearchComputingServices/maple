@@ -9,40 +9,52 @@ import logging
 import requests
 import time
 from itemadapter import ItemAdapter
+import bcrypt
 from maple_interface import MapleAPI
 from maple_structures import Article
 from maple_config import config as cfg
-from maple_processing.process import chat_summary
+from maple_chatgpt import ChatgptClient
+# from maple_processing.process import chatgpt_summary
+
 import socketio
+from socketio import exceptions
 import threading
 
+config = cfg.load_config(cfg.DEVELOPMENT)
 
 class ProcessArticles:
     uuids_to_process = []
     name = 'ProcessArticles'
     
     def __init__(self) -> None:
-        self.sio = socketio.Client()
+        global config
+        self.chatgpt_client = ChatgptClient(
+            MapleAPI(
+            f"http://{config['MAPLE_BACKEND_IP']}:{config['MAPLE_BACKEND_PORT']}"),
+            chatgpt_api_key=config['MAPLE_CHATGPT35TURBO_APIKEY'],
+            socket_io_api_key=config['MAPLE_CHAT_SOCKETIO_KEY'],
+            socket_io_ip=config['MAPLE_CHAT_IP'],
+            socket_io_port=config['MAPLE_CHAT_PORT'],
+            connection_required = False,
+        )
+        # self.sio = socketio.Client()
         self.logger = logging.getLogger(self.name)
         
     def add_uuid(self, uuid):
         if uuid not in self.uuids_to_process:
             self.uuids_to_process.append(uuid)
-        print(self.uuids_to_process)
+        self.logger.debug("uuids to process: %s", self.uuids_to_process)
     
     def send_uuids(self):
-        if not self.sio.connected:
-            # TODO grab port from config.
-            self.sio.connect('http://0.0.0.0:5003')
-            
+        
         uuids = self.uuids_to_process.copy()
     
         for uuid in uuids:
             try:
-                self.logger.debug('sending uuid')
-                self.sio.emit("new_article", uuid)
+                self.logger.debug('sending chat_summary request with uuid %s', uuid)
+                self.chatgpt_client.request_chat_summary({'uuid': uuid}, until_success=False)
                 self.uuids_to_process.remove(uuid)
-                self.logger.debug('uuid %s sent!', uuid)
+                self.logger.debug('request with uuid %s sent!', uuid)
             except Exception as exc:
                 self.logger.error('Failed to send uuid %s. Retry on next call.', uuid, exc)        
     
@@ -90,6 +102,7 @@ class NewsscrapyPipeline:
                             break
                     else:
                         break
+                # Limit the number of urls in url history
                 while len(self._url_history) > self._url_history_size:\
                     self._url_history.pop(0)            
                 try:

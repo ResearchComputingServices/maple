@@ -15,8 +15,6 @@ def load_config(environment: str = None):
         config.update(dotenv_values(environment))
     try:
         config.update(dotenv_values(SECRET))
-        if 'MAPLE_CHATGPT35TURBO_APIKEY' in config:
-            _logger.info("chatgpt apikey: %s",config['MAPLE_CHATGPT35TURBO_APIKEY'])
     except Exception as exc:
         _logger.error(
             "Could not load secret configuration. Contact admin to request files. %s",

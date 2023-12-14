@@ -1,0 +1,21 @@
+import os
+from os import listdir
+from os.path import isfile, join
+
+ALL_MINI = 'all-MiniLM-L6-v2'
+ALL_MPNET = 'all-mpnet-base-v2 '
+EMBEDDING_MODEL = ALL_MINI
+
+CLUSTERING_METRIC = 'euclidean'
+CLUSTERING_SELECTION_METHOD = 'eom'
+CLUSTERING_MIN_SIZE = 150
+
+UMAP_NUM_NEIHGBOURS = 15
+UMAP_NUM_COMPS = 5
+UMAP_MIN_DIST = 0.
+UMAP_METRIC = 'cosine'
+UMAP_RANDOM_SEED = 123
+
+VEC_MODEL_STOP_WORDS = 'english'
+VEC_MODEL_MIN_DIFF = 2
+VEC_MODEL_NGRAM_RANGE = (1, 2)

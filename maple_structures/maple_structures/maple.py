@@ -51,6 +51,7 @@ def _default_property(
 
 class Base(ABC):
     '''Base class for Maple objects.'''
+
     def __init__(self) -> None:
         super().__init__()
         # self._validate_default_keys()
@@ -186,7 +187,7 @@ class Author(Base):
 
 class Comments(Base):
     _default_keys = ["title", "author"]
-    #TODO content, likes, shares, reply_content, comment_id
+    # TODO content, likes, shares, reply_content, comment_id
 
     def __init__(self) -> None:
         super.__init__()
@@ -232,7 +233,8 @@ class Comments(Base):
             try:
                 setattr(comment, key, data[key])
             except:
-                logger.debug(f"Comments:from_json: Invalid data: '{key}':{data[key]}")
+                logger.debug(
+                    f"Comments:from_json: Invalid data: '{key}':{data[key]}")
         return comment
 
     def to_dict(self):
@@ -245,8 +247,10 @@ _article_properties = [
     dict(name="title", type=str, default=""),
     dict(name="summary", type=str, default=""),
     dict(name="content", type=str, default=""),
-    dict(name="author", type=list, default={}, secondary_type=Author, validator=Author.validate),
-    dict(name="video_url", type=list, default=[], secondary_type=str, validator=validators.url),
+    dict(name="author", type=list, default={},
+         secondary_type=Author, validator=Author.validate),
+    dict(name="video_url", type=list, default=[],
+         secondary_type=str, validator=validators.url),
     dict(name="date_published", type=str, default=None),
     dict(name="date_modified", type=str, default=None),
     dict(name="createDate", type=str, default=None),
@@ -300,11 +304,11 @@ class Article(Base):
                 f"'author' should be of type {type(Author)}, not type {type(author)}"
             )
         if getattr(self, '_author', []) is None:
-            setattr(self,'_author', [])
-        setattr(self, '_author', getattr(self, '_author',[]).append(author))
+            setattr(self, '_author', [])
+        setattr(self, '_author', getattr(self, '_author', []).append(author))
         # self._author.append(author)
 
-    def to_dict(self, *, suppress_null = True):
+    def to_dict(self, *, suppress_null=True):
         '''converts Article to dictionary'''
         out = dict()
         for prop in self._properties:
@@ -333,7 +337,7 @@ class Article(Base):
         return out
 
     @staticmethod
-    def from_json(data, *, mapping = None):
+    def from_json(data, *, mapping=None):
         '''constructs an article provided the json'''
         if isinstance(data, str):
             try:
@@ -344,16 +348,16 @@ class Article(Base):
         # mapping keywords fom a different structure
         if mapping is not None:
             converted = dict()
-            
+
             for key in data.keys():
                 if key in mapping.keys():
                     converted[mapping[key]] = data.pop(key)
-            
+
             if any(key in data.keys() for key in converted):
                 raise ValueError('Mapped key already exist in data')
-            
+
             data.update(converted)
-        
+
         article = Article()
 
         properties = {}
@@ -367,24 +371,31 @@ class Article(Base):
                     invalid_metadata_keys = ['_author']
                     for metadata_key in data[key]:
                         if metadata_key not in invalid_metadata_keys:
-                            setattr(article, metadata_key, data[key][metadata_key])
+                            setattr(article, metadata_key,
+                                    data[key][metadata_key])
                 else:
                     if properties[key]["type"] is list:
                         outlist = []
-                        if isinstance(data[key],list):
+                        if isinstance(data[key], list):
                             for item in data[key]:
                                 try:
                                     outlist.append(
-                                        properties[key]["secondary_type"].from_json(item)
+                                        properties[key]["secondary_type"].from_json(
+                                            item)
                                     )
                                 except:
                                     outlist.append(item)
                         setattr(article, key, outlist)
                     else:
                         if hasattr(properties[key]["type"], 'from_json'):
-                            setattr(article, key, properties[key]["type"].from_json(data[key]))
+                            setattr(
+                                article, key, properties[key]["type"].from_json(data[key]))
                         else:
                             setattr(article, key, data[key])
             else:
                 setattr(article, key, data[key])
         return article
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls.from_json(data)
