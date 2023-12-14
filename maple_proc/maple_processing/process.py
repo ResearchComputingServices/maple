@@ -131,13 +131,13 @@ async def chatgpt_summary(content: str, api_key: str):
 async def chatgpt_topic_name(keywords: list[str], api_key: str):
     client = AsyncOpenAI(api_key=api_key)
        
-    content = ' '.join(keywords)
+    content = ', '.join(keywords)
     completion = await client.chat.completions.create(
         model="gpt-3.5-turbo-16k",
         messages=[
             {
                 "role":"user",
-                "content": f"generate at most two words to describe these words: '{content}.'",
+                "content": f"In two words represent this: '{content}.'",
             },
         ],
         timeout = 40,
@@ -159,5 +159,6 @@ async def chatgpt_bullet_summary(content: list[str], api_key: str):
         ],
         timeout = 40,
     )
-    
-    return completion.choices[0].message.content.split('\n')
+    out = completion.choices[0].message.content
+    logger.debug("chatgpt bullet summary returned: %s", out)
+    return out.split('\n')
