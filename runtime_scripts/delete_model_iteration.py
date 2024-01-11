@@ -8,6 +8,9 @@ import asyncio
 import time
 import os
 import shutil
+
+from numpy import isin
+from maple_structures.model import Model, ModelIteration
 import rcs
 from maple_interface import MapleAPI
 from maple_config import config as cfg
@@ -32,7 +35,15 @@ def delete_model_iteration(delete_type: DeleteType):
         authority=f"http://{config['MAPLE_BACKEND_IP']}:{config['MAPLE_BACKEND_PORT']}"
     )
 
-    model_iterations = maple.model_iteration_get()
+    model_iterations_reduced = maple.model_iteration_get(reduced=True)
+    model_iterations = []
+    for model_iteration in model_iterations_reduced:
+        model_iteration = maple.model_iteration_get(uuid=model_iteration.uuid)
+        if isinstance(model_iteration, list):
+            for model_iteration_ in model_iteration:
+                if isinstance(model_iteration_, ModelIteration):
+                    model_iterations.append(model_iteration_)
+            
     logger.debug("Model iterations retrieved: %d", len(model_iterations))
     delete_model_iterations = []
 

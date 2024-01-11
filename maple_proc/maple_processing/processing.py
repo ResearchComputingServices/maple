@@ -24,7 +24,7 @@ from .model import MapleBert, MapleModel
 
 class MapleProcessing:
     DEBUG_LIMIT_PROCESS_COUNT = 2000
-    ARTICLE_PAGE_SIZE=1000
+    ARTICLE_PAGE_SIZE=200
 
     def __init__(
         self, *,
@@ -201,8 +201,9 @@ class MapleProcessing:
                             self.logger.debug('Successfully sent processed from %d to %d', pliststart, pliststart+plistsize)
                             pliststart+= plistsize
                         elif isinstance(response, Response):
-                            self.logger.error('Failed to post processed. Reattempting. %s', response)
-                            
+                            wait_time=random.random()*2
+                            self.logger.error('Failed to post processed. Reattempting in %.2fs. %s', response, wait_time)
+                            time.sleep(wait_time)
                 self.logger.debug("Time to post processed: %.2fs", timeit.default_timer()-tstart_post)
                 self._model_iteration.article_classified += len(processed_list)
                 self._update_model_iteration(keep_fields=['article_classified'])
@@ -702,13 +703,17 @@ class MapleProcessing:
                     
                     self._chatgpt_tasks()
                     
-                    #TODO create plot data for topics and models
                     self._create_chart_data()
+                    
                     # Set status of model_iteration to complete.
                     for level in range(1, 4):
                         model_structure = getattr(self._model_iteration,
                                 f'model_level{level}')
                         model_structure.status = 'complete'
+                        model_structure.path = os.path.join(
+                            self.model_iteration_path,
+                            f'model_level{level}'
+                        )
                         self._update_model_structure(
                             level=level,
                             model_structure=model_structure,

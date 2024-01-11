@@ -1,7 +1,8 @@
+from typing import Union, List
+import logging
 import requests
 from requests import exceptions as request_exc
-
-import logging
+import json
 from maple_structures import Article
 from maple_structures import Topic
 from maple_structures import Model
@@ -304,8 +305,15 @@ class MapleAPI:
                 raise ConnectionError()
             return {}
 
-    def model_iteration_get(self):
-        response = self._get("model-iteration")
+    def model_iteration_get(self, uuid: str = None, reduced: bool = None, type_: str = None, complete: bool = None) -> List[ModelIteration]:
+        params = dict()
+        for var, val in zip(['uuid', 'reduced', 'type', 'complete'], [uuid, reduced, type_, complete]):
+            if val is not None:
+                if isinstance(val, bool):
+                    params[var] = str(val).lower()
+                else:
+                    params[var] = val
+        response = self._get("model-iteration", params=params)
         if response.status_code != 200:
             return response
         else:
