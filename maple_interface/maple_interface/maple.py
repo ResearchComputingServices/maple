@@ -93,6 +93,17 @@ class MapleAPI:
             logger.error(exc)
         return response
 
+    def config_get(self):
+        response = self._get("config")
+        if response.status_code != 200:
+            return response
+        else:
+            try:
+                return response.json()
+            except Exception as exc:
+                logger.error(exc)
+                return {}
+            
     def article_post(self, article: Article, update: bool = False):
         "Posts an article in the database."
         response = self._post("article", params=None, body=article.to_dict())
