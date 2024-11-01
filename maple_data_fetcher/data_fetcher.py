@@ -5,8 +5,10 @@ import argparse
 import os
 import sys
 import time
+from maple_interface.maple import MapleAPI
 import rcs
 from maple_config import config as cfg
+ 
 sys.path.append(os.path.join(os.path.abspath(""), "newsscrapy"))
 
 print(sys.path)
@@ -65,11 +67,14 @@ class DataFetcher:
 
     def __init__(
         self,
+        backend_ip: str,
+        backend_port: str,
         spiders: list = [scrapyCBC.CBCHeadlinesSpider, scrapyCTVNews.CTVNewsSpider],
         spider_output_file: bool = False,
         spider_log_level: str = "warning",
         spider_interval_sec: int = 120,
-        environment= '.env.development'
+        environment= '.env.development',
+        
     ) -> None:
         self.spider_output_file = spider_output_file
         
@@ -82,7 +87,28 @@ class DataFetcher:
         self._spider_interval_sec = spider_interval_sec
 
         self._spiders = spiders
+        
+        self._maple_api = MapleAPI(
+            f"http://{backend_ip}:{backend_port}"
+        )
 
+    def _update_spider_interval_sec_from_config(self):
+        if self._environment == '.env.development':
+            logger.info("Development environment. Not updating spider interval from config.")
+            return
+        config = self._maple_api.config_get()
+        if isinstance(config, dict):
+            if 'spider_interval_seconds' in config:
+                if self._spider_interval_sec != config['spider_interval_seconds']:
+                    logger.info("Updating spider interval from %s to %s", self._spider_interval_sec, config['spider_interval_seconds'])
+                    self._spider_interval_sec = config['spider_interval_seconds']
+            elif config == {}:
+                logger.warning("Failed to retrieve config from backend. Using last updated spider interval.")    
+            else:
+                logger.error("spider_interval_seconds not found in config.")
+        else:
+            logger.warning("Failed to get config from backend. Using last updated spider interval.")
+        
     def _get_project_settings(self):
         self._scrapy_settings = get_project_settings()
 
@@ -129,6 +155,8 @@ class DataFetcher:
     def _crawl(self, spider):
         """crawl a spider and set callback to schedule next crawl"""
         logger.info("Crawling spider: %s", spider)
+        # Fetch config from backend to update interval in case it changed.
+        self._update_spider_interval_sec_from_config()
         job = self._crawl_job(spider)
         job.addCallback(self._schedule_next_crawl, self._spider_interval_sec, spider)
         # job.errback(self._catch_error)
@@ -173,6 +201,8 @@ def main(args):
     logger.debug("config: %s", config)
 
     data_fetcher = DataFetcher(
+        backend_ip=config['MAPLE_BACKEND_IP'],
+        backend_port=config['MAPLE_BACKEND_PORT'],
         spider_output_file=args.o,
         spider_interval_sec=args.i,
         spider_log_level=args.l,
