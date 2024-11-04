@@ -12,5 +12,14 @@
         "maple_proc",
         "maple_structures",
         "~/rcs-utils",
-    ]
+    ],
+    "python.testing.unittestArgs": [
+        "-v",
+        "-s",
+        "./maple_interface/tests",
+        "-p",
+        "test_*.py"
+    ],
+    "python.testing.pytestEnabled": false,
+    "python.testing.unittestEnabled": true
 }

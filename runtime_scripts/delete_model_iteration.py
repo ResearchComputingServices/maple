@@ -33,23 +33,13 @@ def delete_model_iteration(delete_type: DeleteType, use_config: bool = True):
     maple = MapleAPI(
         authority=f"http://{config['MAPLE_BACKEND_IP']}:{config['MAPLE_BACKEND_PORT']}"
     )
-
-    model_iterations_reduced = maple.model_iteration_get(reduced=True)
-    model_iterations = []
-    for model_iteration in model_iterations_reduced:
-        model_iteration = maple.model_iteration_get(uuid=model_iteration.uuid)
-        if isinstance(model_iteration, list):
-            for model_iteration_ in model_iteration:
-                if isinstance(model_iteration_, ModelIteration):
-                    model_iterations.append(model_iteration_)
-
-    logger.debug("Model iterations retrieved: %d", len(model_iterations))
-    delete_model_iterations = []
-
+    
     if delete_type == DeleteType.old:
         days_limit = int(config['MAPLE_MODEL_ITERATION_DATA_PERSISTENCE_DAYS'])
+        logger.debug("Use configuration: %s", use_config)
         if use_config:
             backend_config = maple.config_get()
+            logger.debug("Backend configuration: %s", backend_config)
             if isinstance(backend_config, dict):
                 if 'model_iteration_persistence_days' in backend_config:
                     days_limit = int(
@@ -65,7 +55,33 @@ def delete_model_iteration(delete_type: DeleteType, use_config: bool = True):
 
         logger.info(
             "Attempt deletion of model iterations older than %d days", days_limit)
-
+        
+    model_iterations_reduced = maple.model_iteration_get(reduced=True)
+    model_iterations = []
+    for model_iteration in model_iterations_reduced:
+        if delete_type == DeleteType.old:
+            datediff = datetime.datetime.now(datetime.timezone.utc)-datetime.datetime.fromisoformat(
+                model_iteration.createDate.replace('Z', '+00:00')
+            )
+            if datediff > datetime.timedelta(days=days_limit):
+                model_iteration = maple.model_iteration_get(uuid=model_iteration['uuid'])
+                if isinstance(model_iteration, list):
+                    for model_iteration_ in model_iteration:
+                        if isinstance(model_iteration_, ModelIteration):
+                            model_iterations.append(model_iteration_)
+        else:
+            model_iteration = maple.model_iteration_get(uuid=model_iteration.uuid)
+            if isinstance(model_iteration, list):
+                for model_iteration_ in model_iteration:
+                    if isinstance(model_iteration_, ModelIteration):
+                        model_iterations.append(model_iteration_)
+    logger.debug(
+        "Model iterations reduced/fully retrieved: %d/%d", 
+        len(model_iterations_reduced), 
+        len(model_iterations))
+    logger.debug("Model iterations retrieved: %d", len(model_iterations))
+    
+    delete_model_iterations = []
     for model_iteration in model_iterations:
         if delete_type == DeleteType.old:
             datediff = datetime.datetime.now(datetime.timezone.utc)-datetime.datetime.fromisoformat(
