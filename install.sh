@@ -60,7 +60,7 @@ install_packages(){
     pip install -e .
 
     cd ../
-    [ -d RTPTResearch ] && echo "RTPTResearch directory already exist || git clone git@github.com:ResearchComputingServices/RTPTResearch.git
+    [ -d RTPTResearch ] && echo "RTPTResearch directory already exist" || git clone git@github.com:ResearchComputingServices/RTPTResearch.git
     cd RTPTResearch
     git pull
     pip install -e .
@@ -72,7 +72,7 @@ install_packages(){
 create_pm2_tasks(){
     pm2 delete chatgpt 2> /dev/null && pm2 start runtime_scripts/chatgpt.py --interpreter .venv/bin/python3 
     pm2 delete data_fetcher 2> /dev/null && pm2 start maple_data_fetcher/data_fetcher.py --interpreter .venv/bin/python3  -- -e prod -i 600 -l info
-    pm2 delete delete_model_iteration 2> /dev/null && pm2 start runtime_scripts/delete_model_iteration.py --interpreter .venv/bin/python3 -- -t old -a -c -l debug
+    pm2 delete delete_model_iteration 2> /dev/null && pm2 start runtime_scripts/delete_model_iteration.py --interpreter .venv/bin/python3 -- -t old -a -c -l debug --use_config
     pm2 delete maple_models_bert 2> /dev/null && pm2 start runtime_scripts/maple_models.py --interpreter .venv/bin/python3 --name maple_models_bert -- --model bert --level debug --logname maple_models_bert
     pm2 save
     pm2 kill
