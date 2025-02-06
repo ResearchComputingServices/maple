@@ -1,7 +1,7 @@
+from typing import Union, List
+import logging
 import requests
 from requests import exceptions as request_exc
-
-import logging
 from maple_structures import Article
 from maple_structures import Topic
 from maple_structures import Model
@@ -17,12 +17,15 @@ class Articles:
         mapleapi,
         limit: int = 100,
         page: int = 0,
-        hours: int = None
+        hours: int = None,
+        skip : int = None,
     ) -> None:
         self._mapleapi = mapleapi
         self._limit = limit
         self._page_start = page
+        self._page = page
         self._hours = hours
+        self._skip = skip
 
     def __iter__(self):
         self._page = self._page_start
@@ -32,7 +35,11 @@ class Articles:
 
     def __next__(self):
         articles = self._mapleapi.article_get(
-            limit=self._limit, page=self._page, hours=self._hours)
+            limit=self._limit,
+            page=self._page,
+            hours=self._hours,
+            skip=self._skip,
+            )
 
         if isinstance(articles, requests.Response):
             raise StopIteration
@@ -92,6 +99,17 @@ class MapleAPI:
             logger.error(exc)
         return response
 
+    def config_get(self):
+        response = self._get("config")
+        if response.status_code != 200:
+            return response
+        else:
+            try:
+                return response.json()
+            except Exception as exc:
+                logger.error(exc)
+                return {}
+            
     def article_post(self, article: Article, update: bool = False):
         "Posts an article in the database."
         response = self._post("article", params=None, body=article.to_dict())
@@ -129,7 +147,8 @@ class MapleAPI:
             page: int = None,
             hours: int = None,
             url: str = None,
-            uuid: str = None):
+            uuid: str = None,
+            skip: int = None):
         params = dict()
         if limit is not None:
             params["limit"] = limit
@@ -141,6 +160,8 @@ class MapleAPI:
             params["url"] = url
         if uuid is not None:
             params['uuid'] = uuid
+        if skip is not None:
+            params['skip'] = skip
         response = self._get("article", params=params)
         if response.status_code != 200:
             return response
@@ -155,13 +176,25 @@ class MapleAPI:
                 logger.error(exc)
                 return []
 
-    def article_iterator(self, limit: int = 100, page: int = None, hours: int = None):
+    def article_count_get(self) -> int:
+        response = self._get("article/count")
+        if response.status_code != 200:
+            return response
+        else:
+            try:
+                return response.json()
+            except Exception as exc:
+                logger.error(exc)
+                return 0
+    
+    def article_iterator(self, limit: int = 100, page: int = None, hours: int = None, skip: int = None):
         '''function to iterate through articles.'''
         return iter(Articles(
             self,
             limit=limit if limit is not None else 100,
             page=page if page is not None else 0,
-            hours=hours))
+            hours=hours,
+            skip=skip))
         # while True:
         #     articles = self.article_get(limit, page, hours)
         #     if isinstance(articles, requests.Response):
@@ -213,7 +246,8 @@ class MapleAPI:
             if response.status_code == 200:
                 try:
                     return Topic.from_dict(response.json())
-                except:
+                except Exception as exc:
+                    logger.error(exc)
                     return response
         return response
 
@@ -304,8 +338,15 @@ class MapleAPI:
                 raise ConnectionError()
             return {}
 
-    def model_iteration_get(self):
-        response = self._get("model-iteration")
+    def model_iteration_get(self, uuid: str = None, reduced: bool = None, type_: str = None, complete: bool = None, **kwargs) -> List[ModelIteration]:
+        params = dict()
+        for var, val in zip(['uuid', 'reduced', 'type', 'complete'], [uuid, reduced, type_, complete]):
+            if val is not None:
+                if isinstance(val, bool):
+                    params[var] = str(val).lower()
+                else:
+                    params[var] = val
+        response = self._get("model-iteration", params=params, **kwargs)
         if response.status_code != 200:
             return response
         else:
@@ -337,8 +378,8 @@ class MapleAPI:
                     return response
         return response
 
-    def model_iteration_delete(self, uuid: str):
-        response = self._delete(path="model-iteration", uuid=uuid)
+    def model_iteration_delete(self, uuid: str, timeout=10):
+        response = self._delete(path="model-iteration", uuid=uuid, timeout=timeout)
         return response.status_code
 
     def processed_post_many(self, processed: list[Processed]):

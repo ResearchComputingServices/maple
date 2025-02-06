@@ -24,7 +24,7 @@ from .model import MapleBert, MapleModel
 
 class MapleProcessing:
     DEBUG_LIMIT_PROCESS_COUNT = 2000
-    ARTICLE_PAGE_SIZE=1000
+    ARTICLE_PAGE_SIZE=200
 
     def __init__(
         self, *,
@@ -40,6 +40,9 @@ class MapleProcessing:
     ):
         self.logger = logging.getLogger('MapleProcessing')
         self.maple_api = maple
+        self._last_updated_maple_config = None
+        self._maple_config = None
+        self.logger.debug(f"Maple config: {self.maple_config}")
         self._models = models
         self._hours = hours
         self._max_hours = max_hours
@@ -57,7 +60,18 @@ class MapleProcessing:
         self._training_data = []
         self._article_classified = []
         self._processed = []
-          
+    
+    @property
+    def maple_config(self):
+        if getattr(self, '_maple_config', None) is None:
+            self._maple_config = self.maple_api.config_get()
+            self._last_updated_maple_config = time.time()
+        elif time.time()-self._last_updated_maple_config > 60:
+            self._maple_config = self.maple_api.config_get()
+            self._last_updated_maple_config = time.time()
+            self.logger.debug("Maple config (%s): %s", self._last_updated_maple_config, self.maple_config)
+        return self._maple_config
+        
     @property
     def models(self):
         return [
@@ -133,8 +147,22 @@ class MapleProcessing:
                 model_structure=model_structure,
                 keep_fields=['status'])
         
+        maple_config = self.maple_config
+        if maple_config:
+            if 'max_articles_per_model_iteration' in maple_config:
+                max_articles = maple_config['max_articles_per_model_iteration']
+            else:
+                self.logger.warning("max_articles_per_model_iteration not found in config. Using default value (2000).")
+                max_articles = 2000
+            articles_in_db = self.maple_api.article_count_get()
+            if isinstance(articles_in_db, int):
+                skip_article_count = articles_in_db - max_articles
+            else:
+                skip_article_count = 0
+        else:
+            skip_article_count = 0
 
-        for articles_it in self.maple_api.article_iterator(limit=self.ARTICLE_PAGE_SIZE, page=0):
+        for articles_it in self.maple_api.article_iterator(limit=self.ARTICLE_PAGE_SIZE, page=0, skip=skip_article_count):
             time_start = timeit.default_timer()
 
             # remove articles without chat_summaries.
@@ -201,8 +229,9 @@ class MapleProcessing:
                             self.logger.debug('Successfully sent processed from %d to %d', pliststart, pliststart+plistsize)
                             pliststart+= plistsize
                         elif isinstance(response, Response):
-                            self.logger.error('Failed to post processed. Reattempting. %s', response)
-                            
+                            wait_time=random.random()*2
+                            self.logger.error('Failed to post processed. Reattempting in %.2fs. %s', response, wait_time)
+                            time.sleep(wait_time)
                 self.logger.debug("Time to post processed: %.2fs", timeit.default_timer()-tstart_post)
                 self._model_iteration.article_classified += len(processed_list)
                 self._update_model_iteration(keep_fields=['article_classified'])
@@ -702,13 +731,17 @@ class MapleProcessing:
                     
                     self._chatgpt_tasks()
                     
-                    #TODO create plot data for topics and models
                     self._create_chart_data()
+                    
                     # Set status of model_iteration to complete.
                     for level in range(1, 4):
                         model_structure = getattr(self._model_iteration,
                                 f'model_level{level}')
                         model_structure.status = 'complete'
+                        model_structure.path = os.path.join(
+                            self.model_iteration_path,
+                            f'model_level{level}'
+                        )
                         self._update_model_structure(
                             level=level,
                             model_structure=model_structure,

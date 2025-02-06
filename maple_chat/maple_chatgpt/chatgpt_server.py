@@ -7,7 +7,7 @@ from aiohttp import web
 import time
 import random
 import rcs
-from maple_processing.process import chatgpt_summary, chatgpt_topic_name, chatgpt_bullet_summary
+from maple_processing.process import LLMProcess, chatgpt_summary, chatgpt_topic_name, chatgpt_bullet_summary
 from maple_structures import Article, Topic
 from maple_interface import MapleAPI
 from .utils import JobType
@@ -78,7 +78,8 @@ class ChatgptServer(socketio.AsyncServer):
         socket_io_port: int,
         socket_io_api_key: str,
         chatgpt_api_key: str = None,
-        article_fetching: bool = False) -> None:
+        article_fetching: bool = False,
+        use_config: bool = True) -> None:
         
         super().__init__(ping_timeout=600)
         self.logger=logging.getLogger('ChatgptServer')
@@ -87,6 +88,8 @@ class ChatgptServer(socketio.AsyncServer):
         self.maple_keys_in_use = []
         self.maple_clients = []
         self.maple_jobs = []
+        self._maple_config = None
+        self._use_config = use_config
         
         self.maple_api = maple_api
         self._socket_io_port = socket_io_port
@@ -99,7 +102,26 @@ class ChatgptServer(socketio.AsyncServer):
         self.attach(self._app)
         self.register_namespace(ChatgptServerNamespace('/'))
         self.loop = asyncio.get_event_loop()
-        
+    
+    async def update_config(self):
+        FETCH_CONFIG_INTERVAL = 60
+        while True:
+            if self._use_config:
+                max_attempts = 5
+                attempts = 0
+                while self._maple_config is None and attempts < max_attempts:
+                    self.logger.debug("Fetching maple_config")
+                    maple_config = self.maple_api.config_get()
+                    if maple_config is not None:
+                        if self._maple_config != maple_config:
+                            self.logger.info('maple_config has changed')
+                            self._maple_config = maple_config
+                            self.logger.info('Updated maple_config')
+                        break
+                    attempts +=1
+                    await asyncio.sleep(1)
+            await asyncio.sleep(FETCH_CONFIG_INTERVAL)
+            
         
     def maple_add_job(self, sid: str, api_key: str, job_type: JobType, job_details: any):
         with self.maple_lock:
@@ -207,7 +229,9 @@ class ChatgptServer(socketio.AsyncServer):
                     return
             for _ in range(3):
                 try:
-                    summary = await chatgpt_summary(article.content, job['api_key'])
+                    llm_process = LLMProcess(config = self._maple_config)
+                    summary = await llm_process.get_summary(article.content, job['api_key'])
+                    # summary = await chatgpt_summary(article.content, job['api_key'])
                     # summary = chatgpt_summary(article.content, job['api_key'])
                     break
                 except Exception as exc:
@@ -227,7 +251,10 @@ class ChatgptServer(socketio.AsyncServer):
         job_send = job.copy()
         while True:
             try:
-                topic_name = await chatgpt_topic_name( job_send['job_details']['keyword'], job_send['api_key'])
+                llm_process = LLMProcess(config = self._maple_config)
+                topic_name = await llm_process.get_topic_name(job['job_details']['keyword'], job['api_key'])
+                
+                # topic_name = await chatgpt_topic_name( job_send['job_details']['keyword'], job_send['api_key'])
                 job_send['results'] = topic_name
                 break
             except Exception as exc:
@@ -253,7 +280,11 @@ class ChatgptServer(socketio.AsyncServer):
         
         while True:
             try:
-                bullet_summary = await chatgpt_bullet_summary(job['job_details']['content'], job['api_key'])
+                articles = job['job_details']['content']
+                llm_process = LLMProcess(config = self._maple_config)
+                bullet_summary = await llm_process.get_bullet_summary(articles, job['api_key'])
+                
+                # bullet_summary = await chatgpt_bullet_summary(articles, job['api_key'])
                 job_send['results'] = bullet_summary
                 break
             except Exception as exc:
@@ -346,11 +377,13 @@ class ChatgptServer(socketio.AsyncServer):
     def run(self):
         """run server and tasks
         """
+        self.start_background_task(self.update_config)
         self.start_background_task(self._process)
         # self.loop.create_task(self._process())
         if self._article_fetching:
             self.start_background_task(self._fetch_pending_summaries)
             # self.loop.create_task(self._fetch_pending_summaries())
+        
         web.run_app(
             self._app,
             host = self._socket_io_ip,

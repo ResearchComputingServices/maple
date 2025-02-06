@@ -1,29 +1,37 @@
 """fetches data and stores in database"""
 import logging
-from logging.handlers import RotatingFileHandler
 import argparse
 import os
 import sys
-import time
+import scrapy
+import numpy as np
+from scrapy.crawler import CrawlerRunner
+from scrapy.utils.project import get_project_settings
+from twisted.internet import defer
+
 import rcs
+from maple_interface.maple import MapleAPI
+
 from maple_config import config as cfg
+ 
 sys.path.append(os.path.join(os.path.abspath(""), "newsscrapy"))
+sys.path.append(os.path.join(os.path.abspath(""), "../newsscrapy"))
+from newsscrapy.spiders import scrapyCBC, scrapyCTVNews
 
 print(sys.path)
 
 
-import scrapy
-from scrapy.crawler import CrawlerProcess, CrawlerRunner
-from scrapy.utils.project import get_project_settings
+
+
 
 scrapy.utils.reactor.install_reactor(
     "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 )
-from twisted.internet import defer
+
 
 defer.setDebugging(True)
 
-from newsscrapy.spiders import scrapyCBC, scrapyCTVNews
+
 
 
 parser = argparse.ArgumentParser(
@@ -54,7 +62,7 @@ parser.add_argument(
 
 logger = logging.getLogger("data_fetcher")
 
-spiders = [
+spiders_ = [
     scrapyCBC.CBCHeadlinesSpider,
     scrapyCTVNews.CTVNewsSpider,
 ]
@@ -65,11 +73,14 @@ class DataFetcher:
 
     def __init__(
         self,
+        backend_ip: str,
+        backend_port: str,
         spiders: list = [scrapyCBC.CBCHeadlinesSpider, scrapyCTVNews.CTVNewsSpider],
         spider_output_file: bool = False,
         spider_log_level: str = "warning",
         spider_interval_sec: int = 120,
-        environment= '.env.development'
+        environment= '.env.development',
+        
     ) -> None:
         self.spider_output_file = spider_output_file
         
@@ -82,7 +93,28 @@ class DataFetcher:
         self._spider_interval_sec = spider_interval_sec
 
         self._spiders = spiders
+        
+        self._maple_api = MapleAPI(
+            f"http://{backend_ip}:{backend_port}"
+        )
 
+    def _update_spider_interval_sec_from_config(self):
+        if self._environment == '.env.development':
+            logger.info("Development environment. Not updating spider interval from config.")
+            return
+        config = self._maple_api.config_get()
+        if isinstance(config, dict):
+            if 'spider_interval_seconds' in config:
+                if self._spider_interval_sec != config['spider_interval_seconds']:
+                    logger.info("Updating spider interval from %s to %s", self._spider_interval_sec, config['spider_interval_seconds'])
+                    self._spider_interval_sec = config['spider_interval_seconds']
+            elif config == {}:
+                logger.warning("Failed to retrieve config from backend. Using last updated spider interval.")    
+            else:
+                logger.error("spider_interval_seconds not found in config.")
+        else:
+            logger.warning("Failed to get config from backend. Using last updated spider interval.")
+        
     def _get_project_settings(self):
         self._scrapy_settings = get_project_settings()
 
@@ -103,8 +135,71 @@ class DataFetcher:
         }
         
         self._scrapy_settings["MAPLE_ENVIRONMENT"] = self._environment
-
+        
+        self._scrapy_settings["COOKIES_ENABLED"] = False
+        self._scrapy_settings["DOWNLOAD_DELAY"] = np.random.uniform(1.1, 3.5)
+        self._scrapy_settings["RANDOMIZE_DOWNLOAD_DELAY"] = True
+        
+        # self._scrapy_settings["USER_AGENT"]= "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36"
+        # user_agent_keywords = [
+        #     "Ambitious",
+        #     "Helpful",
+        #     "Adventurous",
+        #     "Bright",
+        #     "Cheerful",
+        #     "Considerate",
+        #     "Courageous",
+        #     "Adaptable",
+        #     "Affable",
+        #     "Affectionate",
+        #     "Agreeable",
+        #     "Attentive",
+        #     "Authentic",
+        #     "Brave",
+        #     "Calm",
+        #     "Creative",
+        #     "Diligent",
+        #     "Empathetic",
+        #     "Witty",
+        #     "Amazing",
+        #     "Amiable",
+        #     "Amicable",
+        #     "Compassionate",
+        #     "Curious"
+        # ]
+        # user_agent_adjectives = [f"{np.random.choice(user_agent_keywords)}" for _ in range(np.random.randint(2, 5))]
+        # user_agent_name = 'And'.join(user_agent_adjectives)
+        # self._scrapy_settings["USER_AGENT"]= f"my-{user_agent_name}-project (http://{'example'}.com)"
+        
+        self._scrapy_settings["DOWNLOADER_MIDDLEWARES"] = {
+            'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware': None,
+            'scrapy.downloadermiddlewares.retry.RetryMiddleware': None,
+            'scrapy_fake_useragent.middleware.RandomUserAgentMiddleware': 400,
+            'scrapy_fake_useragent.middleware.RetryUserAgentMiddleware': 401,
+            'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 110,
+        }
+        
+        self._scrapy_settings["FAKEUSERAGENT_PROVIDERS"] = [
+            'scrapy_fake_useragent.providers.FakerProvider',
+            'scrapy_fake_useragent.providers.FakeUserAgentProvider',     
+            'scrapy_fake_useragent.providers.FixedUserAgentProvider',
+        ]
+        
+        # If using proxies, should include them here.
+        # self._scrapy_settings["ROTATING_PROXY_LIST"] = [
+        #     'http://proxy1.com:8000',
+        #     'http://proxy2.com:8031',
+        #     # Add more proxies here
+        # ]
+        
+        self._scrapy_settings["AUTOTHROTTLE_ENABLED"] = True
+        self._scrapy_settings["AUTOTHROTTLE_START_DELAY"] = 1
+        self._scrapy_settings["AUTOTHROTTLE_MAX_DELAY"] = 10
+        self._scrapy_settings["AUTOTHROTTLE_TARGET_CONCURRENCY"] = 1.0
+        self._scrapy_settings["AUTOTHROTTLE_DEBUG"] = False
+        
         self._scrapy_settings["ENV"] = "0.0.0.0"
+        logging.debug(self._scrapy_settings)
 
     def _crawl_job(self, spider):
         """create the crawl job"""
@@ -129,6 +224,8 @@ class DataFetcher:
     def _crawl(self, spider):
         """crawl a spider and set callback to schedule next crawl"""
         logger.info("Crawling spider: %s", spider)
+        # Fetch config from backend to update interval in case it changed.
+        self._update_spider_interval_sec_from_config()
         job = self._crawl_job(spider)
         job.addCallback(self._schedule_next_crawl, self._spider_interval_sec, spider)
         # job.errback(self._catch_error)
@@ -173,6 +270,9 @@ def main(args):
     logger.debug("config: %s", config)
 
     data_fetcher = DataFetcher(
+        backend_ip=config['MAPLE_BACKEND_IP'],
+        backend_port=config['MAPLE_BACKEND_PORT'],
+        spiders=spiders_,
         spider_output_file=args.o,
         spider_interval_sec=args.i,
         spider_log_level=args.l,

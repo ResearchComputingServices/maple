@@ -1,11 +1,10 @@
 import logging
-import coloredlogs
 import argparse
 import os
+import coloredlogs
 import rcs
-from maple_chatgpt import ChatgptClient, chatgpt_client
+from maple_chatgpt import ChatgptClient
 from maple_processing import MapleProcessing, MapleBert, MapleModel
-from maple_structures import Article
 from maple_interface import MapleAPI
 from maple_config import config as cfg
 
