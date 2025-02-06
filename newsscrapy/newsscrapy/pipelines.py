@@ -96,7 +96,7 @@ class NewsscrapyPipeline:
                 while True:
                     if len(self._url_history) > 0:
                         if (time.time() - self._url_history[0][1]) > 86400:
-                            self.logger.debug('removing article from url history: %s', self._url_history[0][1]['url'])
+                            self.logger.debug('removing article from url history: %s', self._url_history[0])
                             self._url_history.pop(0)
                         else:
                             break

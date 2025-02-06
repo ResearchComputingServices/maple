@@ -8,6 +8,7 @@ import time
 import os
 import shutil
 import coloredlogs
+from openai import timeout
 import rcs
 from maple_structures.model import ModelIteration
 from maple_interface import MapleAPI
@@ -16,7 +17,9 @@ from maple_config import config as cfg
 ENV = cfg.PRODUCTION
 
 logger = logging.getLogger('ModelIterationDeletion')
+logger.info('Starting ModelIterationDeletion script')
 
+TIMEOUT = 120
 
 class DeleteType(enum.Enum):
     all = 'all'
@@ -56,7 +59,7 @@ def delete_model_iteration(delete_type: DeleteType, use_config: bool = True):
         logger.info(
             "Attempt deletion of model iterations older than %d days", days_limit)
         
-    model_iterations_reduced = maple.model_iteration_get(reduced=True)
+    model_iterations_reduced = maple.model_iteration_get(reduced=True, timeout=TIMEOUT)
     model_iterations = []
     for model_iteration in model_iterations_reduced:
         if delete_type == DeleteType.old:
@@ -64,13 +67,13 @@ def delete_model_iteration(delete_type: DeleteType, use_config: bool = True):
                 model_iteration.createDate.replace('Z', '+00:00')
             )
             if datediff > datetime.timedelta(days=days_limit):
-                model_iteration = maple.model_iteration_get(uuid=model_iteration['uuid'])
+                model_iteration = maple.model_iteration_get(uuid=model_iteration.uuid, timeout=TIMEOUT)
                 if isinstance(model_iteration, list):
                     for model_iteration_ in model_iteration:
                         if isinstance(model_iteration_, ModelIteration):
                             model_iterations.append(model_iteration_)
         else:
-            model_iteration = maple.model_iteration_get(uuid=model_iteration.uuid)
+            model_iteration = maple.model_iteration_get(uuid=model_iteration.uuid, timeout=TIMEOUT)
             if isinstance(model_iteration, list):
                 for model_iteration_ in model_iteration:
                     if isinstance(model_iteration_, ModelIteration):
@@ -139,7 +142,7 @@ def delete_model_iteration(delete_type: DeleteType, use_config: bool = True):
                 os.remove(f"{model_iteration_data_path}.zip")
 
             # remove from backend
-            response = maple.model_iteration_delete(model_iteration.uuid)
+            response = maple.model_iteration_delete(model_iteration.uuid, timeout=TIMEOUT)
             if response != 200:
                 logger.error(
                     'Failed deletion of model_iteration with uuid: %s. %s',
@@ -152,7 +155,7 @@ def delete_model_iteration(delete_type: DeleteType, use_config: bool = True):
 
 async def delete_model_iteration_async(
         delete_type: DeleteType,
-        period_seconds: int = None,
+        period_seconds: int | None = None,
         use_config: bool = True):
 
     tstart = time.time()
@@ -222,23 +225,23 @@ if __name__ == '__main__':
 
     logger.debug('Arguments provided are: %s', args)
 
-    delete_type = getattr(DeleteType, args.t)
+    delete_type_ = getattr(DeleteType, args.t)
 
     if args.a:
         if not args.p:
             logger.info(
                 'Period not provided. Deletion will occur every midnight.')
-        if delete_type != DeleteType.old:
+        if delete_type_ != DeleteType.old:
             raise ValueError(
                 "In async (a) mode, only 'old' deletion type is accepted.")
         logger.debug("Running script in async mode with period %d.", args.p)
         asyncio.run(
             delete_model_iteration_async(
-                delete_type=delete_type,
-                period_seconds=args.p,
+                delete_type=delete_type_,
+                period_seconds=None if not args.p else args.p, 
                 use_config=args.use_config)
         )
     else:
         delete_model_iteration(
-            delete_type=delete_type,
+            delete_type=delete_type_,
             use_config=args.use_config)

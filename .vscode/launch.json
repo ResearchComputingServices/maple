@@ -16,7 +16,7 @@
                 "debug",
                 "--logname",
                 "maple_models_bert_debug",
-                "--debug-limits",
+                // "--debug-limits",
                 // "--run-once"
             ],
             "console": "integratedTerminal",
@@ -52,7 +52,7 @@
                 "-i",
                 "600",
                 "-l",
-                "info"
+                "debug"
             ],
             "console": "integratedTerminal",
             "justMyCode": true
@@ -125,7 +125,8 @@
                 "-a",
                 "-c",
                 "-l",
-                "debug"
+                "debug",
+                "--use_config",
             ],
             "console": "integratedTerminal",
             "justMyCode": true

@@ -40,6 +40,9 @@ class MapleProcessing:
     ):
         self.logger = logging.getLogger('MapleProcessing')
         self.maple_api = maple
+        self._last_updated_maple_config = None
+        self._maple_config = None
+        self.logger.debug(f"Maple config: {self.maple_config}")
         self._models = models
         self._hours = hours
         self._max_hours = max_hours
@@ -57,7 +60,18 @@ class MapleProcessing:
         self._training_data = []
         self._article_classified = []
         self._processed = []
-          
+    
+    @property
+    def maple_config(self):
+        if getattr(self, '_maple_config', None) is None:
+            self._maple_config = self.maple_api.config_get()
+            self._last_updated_maple_config = time.time()
+        elif time.time()-self._last_updated_maple_config > 60:
+            self._maple_config = self.maple_api.config_get()
+            self._last_updated_maple_config = time.time()
+            self.logger.debug("Maple config (%s): %s", self._last_updated_maple_config, self.maple_config)
+        return self._maple_config
+        
     @property
     def models(self):
         return [
@@ -133,8 +147,22 @@ class MapleProcessing:
                 model_structure=model_structure,
                 keep_fields=['status'])
         
+        maple_config = self.maple_config
+        if maple_config:
+            if 'max_articles_per_model_iteration' in maple_config:
+                max_articles = maple_config['max_articles_per_model_iteration']
+            else:
+                self.logger.warning("max_articles_per_model_iteration not found in config. Using default value (2000).")
+                max_articles = 2000
+            articles_in_db = self.maple_api.article_count_get()
+            if isinstance(articles_in_db, int):
+                skip_article_count = articles_in_db - max_articles
+            else:
+                skip_article_count = 0
+        else:
+            skip_article_count = 0
 
-        for articles_it in self.maple_api.article_iterator(limit=self.ARTICLE_PAGE_SIZE, page=0):
+        for articles_it in self.maple_api.article_iterator(limit=self.ARTICLE_PAGE_SIZE, page=0, skip=skip_article_count):
             time_start = timeit.default_timer()
 
             # remove articles without chat_summaries.
