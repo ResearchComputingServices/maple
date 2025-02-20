@@ -167,7 +167,10 @@ class Author(Base):
         setattr(self, "_about", value)
 
     def to_dict(self):
-        return self._to_dict_endpoint()
+        author = self._to_dict_endpoint()
+        if author['email'] == '':
+            author.pop('email')
+        return author
 
     @staticmethod
     def from_json(data):
@@ -247,7 +250,7 @@ _article_properties = [
     dict(name="title", type=str, default=""),
     dict(name="summary", type=str, default=""),
     dict(name="content", type=str, default=""),
-    dict(name="author", type=list, default={},
+    dict(name="author", type=list, default=[],
          secondary_type=Author, validator=Author.validate),
     dict(name="video_url", type=list, default=[],
          secondary_type=str, validator=validators.url),
@@ -305,8 +308,9 @@ class Article(Base):
             )
         if getattr(self, '_author', []) is None:
             setattr(self, '_author', [])
-        setattr(self, '_author', getattr(self, '_author', []).append(author))
-        # self._author.append(author)
+        authors = getattr(self, '_author', [])
+        authors.append(author)
+        setattr(self, '_author', authors)
 
     def to_dict(self, *, suppress_null=True):
         '''converts Article to dictionary'''

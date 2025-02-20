@@ -12,6 +12,7 @@
         "maple_proc",
         "maple_structures",
         "~/rcs-utils",
+        "./newsscrapy"
     ],
     "python.testing.unittestArgs": [
         "-v",

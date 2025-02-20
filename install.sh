@@ -26,6 +26,10 @@ install_packages(){
 
     pip install scrapy-fake-useragent
 
+    pip install scrapy-playwright
+
+    playwright install chromium
+    
     pip install --upgrade pip setuptools
 
     pip install python-socketio python-socketio[client]

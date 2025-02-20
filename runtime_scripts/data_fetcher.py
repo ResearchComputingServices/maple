@@ -16,10 +16,9 @@ from maple_config import config as cfg
  
 sys.path.append(os.path.join(os.path.abspath(""), "newsscrapy"))
 sys.path.append(os.path.join(os.path.abspath(""), "../newsscrapy"))
-from newsscrapy.spiders import scrapyCBC, scrapyCTVNews
+from newsscrapy.spiders import scrapyCBC, scrapyCTVNews, CTVNewsV2
 
 print(sys.path)
-
 
 
 
@@ -64,7 +63,8 @@ logger = logging.getLogger("data_fetcher")
 
 spiders_ = [
     scrapyCBC.CBCHeadlinesSpider,
-    scrapyCTVNews.CTVNewsSpider,
+    # scrapyCTVNews.CTVNewsSpider,
+    CTVNewsV2.CTVNewsSpider,
 ]
 
 
